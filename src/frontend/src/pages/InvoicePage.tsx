@@ -409,7 +409,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                         padding: "10px 12px",
                         textAlign: "center",
                         fontSize: "13px",
-                        color: "#6B7280",
+                        color: "#111111",
                       }}
                     >
                       {itemIdx + 1}
@@ -419,6 +419,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                         padding: "10px 12px",
                         fontSize: "13px",
                         fontWeight: 500,
+                        color: "#111111",
                       }}
                     >
                       {item.description}
@@ -427,7 +428,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       style={{
                         padding: "10px 12px",
                         fontSize: "13px",
-                        color: "#6B7280",
+                        color: "#111111",
                       }}
                     >
                       {item.purity}K
@@ -437,6 +438,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                         padding: "10px 12px",
                         textAlign: "right",
                         fontSize: "13px",
+                        color: "#111111",
                       }}
                     >
                       {item.weight}g
@@ -446,6 +448,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                         padding: "10px 12px",
                         textAlign: "right",
                         fontSize: "13px",
+                        color: "#111111",
                       }}
                     >
                       ₹{item.rate.toLocaleString("en-IN")}
@@ -456,7 +459,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                         textAlign: "right",
                         fontSize: "13px",
                         fontWeight: 600,
-                        color: "#78600A",
+                        color: "#111111",
                       }}
                     >
                       ₹{item.total.toLocaleString("en-IN")}
@@ -465,6 +468,18 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 ))}
               </tbody>
             </table>
+
+            {/* Majuri note */}
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#555",
+                marginBottom: "16px",
+                fontStyle: "italic",
+              }}
+            >
+              * मजुरीसह
+            </p>
 
             {/* Totals */}
             <div

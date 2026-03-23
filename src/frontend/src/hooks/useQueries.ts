@@ -2,15 +2,85 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CustomerDTO,
   GoldRateDTO,
+  GoldRatesDTO,
   Invoice,
   InvoiceDTO,
   JobOrderDTO,
   JobOrderUpdateDTO,
   SettingsDTO,
   UserDTO,
+  backendInterface,
 } from "../backend";
 import { Variant_paid_locked_draft_partial } from "../backend";
 import { useActor } from "./useActor";
+
+/**
+ * Gets stored credentials from localStorage.
+ * Throws if credentials are not found — this forces the caller to handle the missing creds case.
+ */
+function getStoredCreds(): { phone: string; password: string } {
+  const raw = localStorage.getItem("omkar_creds");
+  if (!raw) throw new Error("NO_CREDS");
+  const creds = JSON.parse(raw) as { phone: string; password: string };
+  if (!creds.phone || !creds.password) throw new Error("NO_CREDS");
+  return creds;
+}
+
+/**
+ * Re-establishes the backend session by calling actor.login().
+ * Throws if login fails for any reason.
+ */
+async function doLogin(actor: backendInterface): Promise<void> {
+  const creds = getStoredCreds();
+  await actor.login(creds.phone, creds.password);
+}
+
+/**
+ * Calls a backend function with automatic session re-establishment.
+ * Pattern:
+ * 1. Call login() first to ensure session is active (handles post-deployment session loss)
+ * 2. Call the actual backend function
+ * 3. If backend returns Unauthorized (shouldn't happen after step 1, but just in case),
+ *    retry login and call again once more
+ *
+ * This replaces the old silent `ensureAuth` that was hiding errors.
+ */
+async function withAuth<T>(
+  actor: backendInterface,
+  fn: () => Promise<T>,
+): Promise<T> {
+  // Step 1: Always re-establish session before the call
+  try {
+    await doLogin(actor);
+  } catch (loginErr) {
+    const msg = String(loginErr);
+    if (msg.includes("NO_CREDS")) {
+      // No credentials stored — user needs to log in manually
+      // Clear frontend auth so the login screen appears
+      localStorage.removeItem("omkar_auth");
+      window.location.hash = "/login";
+      throw new Error("कृपया पुन्हा लॉग इन करा | Please log in again");
+    }
+    // Other login failure (wrong password, user not found, network) — propagate
+    throw loginErr;
+  }
+
+  // Step 2: Call the actual function
+  try {
+    return await fn();
+  } catch (err) {
+    const msg = String(err);
+    // If still Unauthorized after login (very rare race condition), retry once
+    if (
+      msg.includes("Unauthorized") ||
+      msg.includes("Authentication required")
+    ) {
+      await doLogin(actor);
+      return await fn();
+    }
+    throw err;
+  }
+}
 
 export function useCustomers() {
   const { actor, isFetching } = useActor();
@@ -31,6 +101,18 @@ export function useGoldRate() {
     queryFn: async () => {
       if (!actor) return { ratePerGram: 6500 };
       return actor.getGoldRate();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGoldRates() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["goldRates"],
+    queryFn: async () => {
+      if (!actor) return { gold24k: 0, gold22k: 0, gold18k: 0, silver: 0 };
+      return actor.getGoldRates();
     },
     enabled: !!actor && !isFetching,
   });
@@ -143,7 +225,7 @@ export function useAddCustomer() {
   return useMutation({
     mutationFn: async (customer: CustomerDTO) => {
       if (!actor) throw new Error("No actor");
-      return actor.addCustomer(customer);
+      return withAuth(actor, () => actor.addCustomer(customer));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
   });
@@ -155,7 +237,7 @@ export function useCreateInvoice() {
   return useMutation({
     mutationFn: async (invoice: InvoiceDTO) => {
       if (!actor) throw new Error("No actor");
-      return actor.createInvoice(invoice);
+      return withAuth(actor, () => actor.createInvoice(invoice));
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -171,7 +253,7 @@ export function useLockInvoice() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error("No actor");
-      return actor.lockInvoice(id);
+      return withAuth(actor, () => actor.lockInvoice(id));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
   });
@@ -186,7 +268,7 @@ export function useReceivePayment() {
       amount,
     }: { invoiceId: string; amount: number }) => {
       if (!actor) throw new Error("No actor");
-      return actor.receivePayment(invoiceId, amount);
+      return withAuth(actor, () => actor.receivePayment(invoiceId, amount));
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["udharLedger"] });
@@ -202,9 +284,27 @@ export function useUpdateGoldRate() {
   return useMutation({
     mutationFn: async (rate: GoldRateDTO) => {
       if (!actor) throw new Error("No actor");
-      return actor.updateGoldRate(rate);
+      return withAuth(actor, () => actor.updateGoldRate(rate));
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["goldRate"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["goldRate"] });
+      qc.invalidateQueries({ queryKey: ["goldRates"] });
+    },
+  });
+}
+
+export function useUpdateGoldRates() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (rates: GoldRatesDTO) => {
+      if (!actor) throw new Error("No actor");
+      return withAuth(actor, () => actor.updateGoldRates(rates));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["goldRates"] });
+      qc.invalidateQueries({ queryKey: ["goldRate"] });
+    },
   });
 }
 
@@ -214,7 +314,7 @@ export function useCreateJobOrder() {
   return useMutation({
     mutationFn: async (job: JobOrderDTO) => {
       if (!actor) throw new Error("No actor");
-      return actor.createJobOrder(job);
+      return withAuth(actor, () => actor.createJobOrder(job));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["jobOrders"] }),
   });
@@ -226,7 +326,7 @@ export function useUpdateJobOrder() {
   return useMutation({
     mutationFn: async (update: JobOrderUpdateDTO) => {
       if (!actor) throw new Error("No actor");
-      return actor.updateJobOrder(update);
+      return withAuth(actor, () => actor.updateJobOrder(update));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["jobOrders"] }),
   });
@@ -238,7 +338,7 @@ export function useUpdateSettings() {
   return useMutation({
     mutationFn: async (settings: SettingsDTO) => {
       if (!actor) throw new Error("No actor");
-      return actor.updateSettings(settings);
+      return withAuth(actor, () => actor.updateSettings(settings));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
@@ -249,7 +349,7 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: async (user: UserDTO) => {
       if (!actor) throw new Error("No actor");
-      return actor.createUser(user);
+      return withAuth(actor, () => actor.createUser(user));
     },
   });
 }
@@ -270,4 +370,78 @@ export function useGetUdharByCustomer(
       )
       .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))[0] ?? null
   );
+}
+
+// Repair Orders
+export function useRepairOrders() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["repairOrders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getRepairOrders();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateRepairOrder() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (order: import("../backend").RepairOrderDTO) => {
+      if (!actor) throw new Error("No actor");
+      return withAuth(actor, () => actor.createRepairOrder(order));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["repairOrders"] }),
+  });
+}
+
+export function useUpdateRepairOrder() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (update: import("../backend").RepairOrderUpdateDTO) => {
+      if (!actor) throw new Error("No actor");
+      return withAuth(actor, () => actor.updateRepairOrder(update));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["repairOrders"] }),
+  });
+}
+
+// Custom Orders
+export function useCustomOrders() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["customOrders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getCustomOrders();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateCustomOrder() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (order: import("../backend").CustomOrderDTO) => {
+      if (!actor) throw new Error("No actor");
+      return withAuth(actor, () => actor.createCustomOrder(order));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customOrders"] }),
+  });
+}
+
+export function useUpdateCustomOrder() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (update: import("../backend").CustomOrderUpdateDTO) => {
+      if (!actor) throw new Error("No actor");
+      return withAuth(actor, () => actor.updateCustomOrder(update));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customOrders"] }),
+  });
 }

@@ -10,6 +10,41 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface CustomOrder {
+  'id' : string,
+  'customerName' : string,
+  'status' : { 'delivered' : null } |
+    { 'inProgress' : null } |
+    { 'received' : null } |
+    { 'ready' : null },
+  'itemDescription' : string,
+  'createdAt' : Time,
+  'designNotes' : string,
+  'dueDate' : Time,
+  'updatedAt' : Time,
+  'advancePaid' : number,
+  'phone' : string,
+  'estimatedCost' : number,
+  'referenceImageHash' : [] | [string],
+}
+export interface CustomOrderDTO {
+  'customerName' : string,
+  'itemDescription' : string,
+  'designNotes' : string,
+  'dueDate' : Time,
+  'advancePaid' : number,
+  'phone' : string,
+  'estimatedCost' : number,
+  'referenceImageHash' : [] | [string],
+}
+export interface CustomOrderUpdateDTO {
+  'id' : string,
+  'status' : { 'delivered' : null } |
+    { 'inProgress' : null } |
+    { 'received' : null } |
+    { 'ready' : null },
+  'designNotes' : string,
+}
 export interface Customer {
   'name' : string,
   'createdAt' : Time,
@@ -90,6 +125,37 @@ export interface JobOrderUpdateDTO {
     { 'inProgress' : null },
   'notes' : string,
 }
+export interface RepairOrder {
+  'id' : string,
+  'customerName' : string,
+  'status' : { 'delivered' : null } |
+    { 'inProgress' : null } |
+    { 'received' : null } |
+    { 'ready' : null },
+  'itemDescription' : string,
+  'createdAt' : Time,
+  'updatedAt' : Time,
+  'notes' : string,
+  'phone' : string,
+  'estimatedCost' : number,
+  'referenceImageHash' : [] | [string],
+}
+export interface RepairOrderDTO {
+  'customerName' : string,
+  'itemDescription' : string,
+  'notes' : string,
+  'phone' : string,
+  'estimatedCost' : number,
+  'referenceImageHash' : [] | [string],
+}
+export interface RepairOrderUpdateDTO {
+  'id' : string,
+  'status' : { 'delivered' : null } |
+    { 'inProgress' : null } |
+    { 'received' : null } |
+    { 'ready' : null },
+  'notes' : string,
+}
 export type Role = { 'karagir' : null } |
   { 'manager' : null } |
   { 'owner' : null } |
@@ -116,15 +182,45 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addCustomer' : ActorMethod<[CustomerDTO], string>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createCustomOrder' : ActorMethod<[CustomOrderDTO], string>,
   'createInvoice' : ActorMethod<[InvoiceDTO], string>,
   'createJobOrder' : ActorMethod<[JobOrderDTO], string>,
+  'createRepairOrder' : ActorMethod<[RepairOrderDTO], string>,
   'createUser' : ActorMethod<[UserDTO], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCustomOrder' : ActorMethod<[string], [] | [CustomOrder]>,
+  'getCustomOrders' : ActorMethod<[], Array<CustomOrder>>,
   'getCustomer' : ActorMethod<[string], [] | [Customer]>,
   'getCustomers' : ActorMethod<[], Array<CustomerDTO>>,
   'getGoldRate' : ActorMethod<[], GoldRateDTO>,
@@ -139,6 +235,8 @@ export interface _SERVICE {
   'getJobOrders' : ActorMethod<[], Array<JobOrder>>,
   'getPaidInvoices' : ActorMethod<[], Array<Invoice>>,
   'getPaymentHistory' : ActorMethod<[string], Array<Invoice>>,
+  'getRepairOrder' : ActorMethod<[string], [] | [RepairOrder]>,
+  'getRepairOrders' : ActorMethod<[], Array<RepairOrder>>,
   'getSettings' : ActorMethod<[], SettingsDTO>,
   'getTotalSales' : ActorMethod<[], number>,
   'getTotalUdharPending' : ActorMethod<[], number>,
@@ -150,9 +248,11 @@ export interface _SERVICE {
   'login' : ActorMethod<[string, string], UserDTO>,
   'receivePayment' : ActorMethod<[string, number], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateCustomOrder' : ActorMethod<[CustomOrderUpdateDTO], undefined>,
   'updateGoldRate' : ActorMethod<[GoldRateDTO], undefined>,
   'updateInvoiceStatus' : ActorMethod<[InvoiceUpdateDTO], undefined>,
   'updateJobOrder' : ActorMethod<[JobOrderUpdateDTO], undefined>,
+  'updateRepairOrder' : ActorMethod<[RepairOrderUpdateDTO], undefined>,
   'updateSettings' : ActorMethod<[SettingsDTO], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   BarChart3,
   BookOpen,
+  CheckCircle2,
   Diamond,
   FileText,
   Globe,
@@ -11,7 +12,9 @@ import {
   LogOut,
   Menu,
   Settings,
+  Sparkles,
   Users,
+  Wrench,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -41,6 +44,24 @@ const navItems: NavItem[] = [
     route: "/karagir",
     icon: <Hammer size={18} />,
     roles: ["karagir", "owner", "manager"],
+  },
+  {
+    key: "repair",
+    route: "/repair",
+    icon: <Wrench size={18} />,
+    roles: ["owner", "manager", "staff"],
+  },
+  {
+    key: "customOrders",
+    route: "/custom-orders",
+    icon: <Sparkles size={18} />,
+    roles: ["owner", "manager", "staff"],
+  },
+  {
+    key: "completedOrders",
+    route: "/completed",
+    icon: <CheckCircle2 size={18} />,
+    roles: ["owner", "manager", "staff"],
   },
   {
     key: "settings",

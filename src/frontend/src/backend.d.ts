@@ -14,12 +14,30 @@ export interface SettingsDTO {
     shopName: string;
     phone: string;
 }
+export interface RepairOrder {
+    id: string;
+    customerName: string;
+    status: Variant_delivered_inProgress_received_ready;
+    itemDescription: string;
+    createdAt: Time;
+    updatedAt: Time;
+    notes: string;
+    phone: string;
+    estimatedCost: number;
+    referenceImageHash?: string;
+}
 export interface InvoiceItem {
     weight: number;
     total: number;
     rate: number;
     description: string;
     purity: number;
+}
+export type Time = bigint;
+export interface JobOrderUpdateDTO {
+    id: string;
+    status: Variant_pending_completed_inProgress;
+    notes: string;
 }
 export interface InvoiceDTO {
     gst: boolean;
@@ -30,11 +48,15 @@ export interface InvoiceDTO {
     items: Array<InvoiceItem>;
     partialPayment: number;
 }
-export type Time = bigint;
-export interface JobOrderUpdateDTO {
-    id: string;
-    status: Variant_pending_completed_inProgress;
-    notes: string;
+export interface CustomOrderDTO {
+    customerName: string;
+    itemDescription: string;
+    designNotes: string;
+    dueDate: Time;
+    advancePaid: number;
+    phone: string;
+    estimatedCost: number;
+    referenceImageHash?: string;
 }
 export interface Invoice {
     id: string;
@@ -79,6 +101,19 @@ export interface JobOrderDTO {
     dueDate: Time;
     description: string;
 }
+export interface CustomOrderUpdateDTO {
+    id: string;
+    status: Variant_delivered_inProgress_received_ready;
+    designNotes: string;
+}
+export interface RepairOrderDTO {
+    customerName: string;
+    itemDescription: string;
+    notes: string;
+    phone: string;
+    estimatedCost: number;
+    referenceImageHash?: string;
+}
 export interface UserDTO {
     password: string;
     name: string;
@@ -88,10 +123,35 @@ export interface UserDTO {
 export interface GoldRateDTO {
     ratePerGram: number;
 }
+export interface GoldRatesDTO {
+    gold24k: number;
+    gold22k: number;
+    gold18k: number;
+    silver: number;
+}
+export interface RepairOrderUpdateDTO {
+    id: string;
+    status: Variant_delivered_inProgress_received_ready;
+    notes: string;
+}
 export interface CustomerDTO {
     name: string;
     address: string;
     phone: string;
+}
+export interface CustomOrder {
+    id: string;
+    customerName: string;
+    status: Variant_delivered_inProgress_received_ready;
+    itemDescription: string;
+    createdAt: Time;
+    designNotes: string;
+    dueDate: Time;
+    updatedAt: Time;
+    advancePaid: number;
+    phone: string;
+    estimatedCost: number;
+    referenceImageHash?: string;
 }
 export interface UserProfile {
     name: string;
@@ -109,6 +169,12 @@ export enum UserRole {
     user = "user",
     guest = "guest"
 }
+export enum Variant_delivered_inProgress_received_ready {
+    delivered = "delivered",
+    inProgress = "inProgress",
+    received = "received",
+    ready = "ready"
+}
 export enum Variant_paid_locked_draft_partial {
     paid = "paid",
     locked = "locked",
@@ -123,14 +189,19 @@ export enum Variant_pending_completed_inProgress {
 export interface backendInterface {
     addCustomer(customer: CustomerDTO): Promise<string>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    createCustomOrder(customOrder: CustomOrderDTO): Promise<string>;
     createInvoice(invoice: InvoiceDTO): Promise<string>;
     createJobOrder(job: JobOrderDTO): Promise<string>;
+    createRepairOrder(repairOrder: RepairOrderDTO): Promise<string>;
     createUser(userDTO: UserDTO): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getCustomOrder(id: string): Promise<CustomOrder | null>;
+    getCustomOrders(): Promise<Array<CustomOrder>>;
     getCustomer(phone: string): Promise<Customer | null>;
     getCustomers(): Promise<Array<CustomerDTO>>;
     getGoldRate(): Promise<GoldRateDTO>;
+    getGoldRates(): Promise<GoldRatesDTO>;
     getInvoice(id: string): Promise<Invoice | null>;
     getInvoiceCounts(): Promise<{
         total: bigint;
@@ -143,19 +214,24 @@ export interface backendInterface {
     getJobOrders(): Promise<Array<JobOrder>>;
     getPaidInvoices(): Promise<Array<Invoice>>;
     getPaymentHistory(customerId: string): Promise<Array<Invoice>>;
+    getRepairOrder(id: string): Promise<RepairOrder | null>;
+    getRepairOrders(): Promise<Array<RepairOrder>>;
     getSettings(): Promise<SettingsDTO>;
     getTotalSales(): Promise<number>;
     getTotalUdharPending(): Promise<number>;
     getUdharLedger(): Promise<Array<Invoice>>;
     getUnpaidInvoices(): Promise<Array<Invoice>>;
-    getUserProfile(userPrincipal: Principal): Promise<UserProfile | null>;
+    getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     lockInvoice(id: string): Promise<void>;
     login(phone: string, password: string): Promise<UserDTO>;
     receivePayment(invoiceId: string, amount: number): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateCustomOrder(update: CustomOrderUpdateDTO): Promise<void>;
     updateGoldRate(newRate: GoldRateDTO): Promise<void>;
+    updateGoldRates(newRates: GoldRatesDTO): Promise<void>;
     updateInvoiceStatus(update: InvoiceUpdateDTO): Promise<void>;
     updateJobOrder(update: JobOrderUpdateDTO): Promise<void>;
+    updateRepairOrder(update: RepairOrderUpdateDTO): Promise<void>;
     updateSettings(newSettings: SettingsDTO): Promise<void>;
 }

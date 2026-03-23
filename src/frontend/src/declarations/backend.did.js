@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _CaffeineStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _CaffeineStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const CustomerDTO = IDL.Record({
   'name' : IDL.Text,
   'address' : IDL.Text,
@@ -17,6 +28,17 @@ export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
+});
+export const Time = IDL.Int;
+export const CustomOrderDTO = IDL.Record({
+  'customerName' : IDL.Text,
+  'itemDescription' : IDL.Text,
+  'designNotes' : IDL.Text,
+  'dueDate' : Time,
+  'advancePaid' : IDL.Float64,
+  'phone' : IDL.Text,
+  'estimatedCost' : IDL.Float64,
+  'referenceImageHash' : IDL.Opt(IDL.Text),
 });
 export const InvoiceItem = IDL.Record({
   'weight' : IDL.Float64,
@@ -34,12 +56,19 @@ export const InvoiceDTO = IDL.Record({
   'items' : IDL.Vec(InvoiceItem),
   'partialPayment' : IDL.Float64,
 });
-export const Time = IDL.Int;
 export const JobOrderDTO = IDL.Record({
   'customerName' : IDL.Text,
   'assignedKaragir' : IDL.Text,
   'dueDate' : Time,
   'description' : IDL.Text,
+});
+export const RepairOrderDTO = IDL.Record({
+  'customerName' : IDL.Text,
+  'itemDescription' : IDL.Text,
+  'notes' : IDL.Text,
+  'phone' : IDL.Text,
+  'estimatedCost' : IDL.Float64,
+  'referenceImageHash' : IDL.Opt(IDL.Text),
 });
 export const Role = IDL.Variant({
   'karagir' : IDL.Null,
@@ -57,6 +86,25 @@ export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'role' : Role,
   'phone' : IDL.Text,
+});
+export const CustomOrder = IDL.Record({
+  'id' : IDL.Text,
+  'customerName' : IDL.Text,
+  'status' : IDL.Variant({
+    'delivered' : IDL.Null,
+    'inProgress' : IDL.Null,
+    'received' : IDL.Null,
+    'ready' : IDL.Null,
+  }),
+  'itemDescription' : IDL.Text,
+  'createdAt' : Time,
+  'designNotes' : IDL.Text,
+  'dueDate' : Time,
+  'updatedAt' : Time,
+  'advancePaid' : IDL.Float64,
+  'phone' : IDL.Text,
+  'estimatedCost' : IDL.Float64,
+  'referenceImageHash' : IDL.Opt(IDL.Text),
 });
 export const Customer = IDL.Record({
   'name' : IDL.Text,
@@ -101,12 +149,39 @@ export const JobOrder = IDL.Record({
   'updatedAt' : Time,
   'notes' : IDL.Text,
 });
+export const RepairOrder = IDL.Record({
+  'id' : IDL.Text,
+  'customerName' : IDL.Text,
+  'status' : IDL.Variant({
+    'delivered' : IDL.Null,
+    'inProgress' : IDL.Null,
+    'received' : IDL.Null,
+    'ready' : IDL.Null,
+  }),
+  'itemDescription' : IDL.Text,
+  'createdAt' : Time,
+  'updatedAt' : Time,
+  'notes' : IDL.Text,
+  'phone' : IDL.Text,
+  'estimatedCost' : IDL.Float64,
+  'referenceImageHash' : IDL.Opt(IDL.Text),
+});
 export const SettingsDTO = IDL.Record({
   'gstNumber' : IDL.Text,
   'address' : IDL.Text,
   'defaultLanguage' : IDL.Text,
   'shopName' : IDL.Text,
   'phone' : IDL.Text,
+});
+export const CustomOrderUpdateDTO = IDL.Record({
+  'id' : IDL.Text,
+  'status' : IDL.Variant({
+    'delivered' : IDL.Null,
+    'inProgress' : IDL.Null,
+    'received' : IDL.Null,
+    'ready' : IDL.Null,
+  }),
+  'designNotes' : IDL.Text,
 });
 export const InvoiceUpdateDTO = IDL.Record({
   'id' : IDL.Text,
@@ -126,16 +201,56 @@ export const JobOrderUpdateDTO = IDL.Record({
   }),
   'notes' : IDL.Text,
 });
+export const RepairOrderUpdateDTO = IDL.Record({
+  'id' : IDL.Text,
+  'status' : IDL.Variant({
+    'delivered' : IDL.Null,
+    'inProgress' : IDL.Null,
+    'received' : IDL.Null,
+    'ready' : IDL.Null,
+  }),
+  'notes' : IDL.Text,
+});
 
 export const idlService = IDL.Service({
+  '_caffeineStorageBlobIsLive' : IDL.Func(
+      [IDL.Vec(IDL.Nat8)],
+      [IDL.Bool],
+      ['query'],
+    ),
+  '_caffeineStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_caffeineStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_CaffeineStorageCreateCertificateResult],
+      [],
+    ),
+  '_caffeineStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_CaffeineStorageRefillInformation)],
+      [_CaffeineStorageRefillResult],
+      [],
+    ),
+  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addCustomer' : IDL.Func([CustomerDTO], [IDL.Text], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createCustomOrder' : IDL.Func([CustomOrderDTO], [IDL.Text], []),
   'createInvoice' : IDL.Func([InvoiceDTO], [IDL.Text], []),
   'createJobOrder' : IDL.Func([JobOrderDTO], [IDL.Text], []),
+  'createRepairOrder' : IDL.Func([RepairOrderDTO], [IDL.Text], []),
   'createUser' : IDL.Func([UserDTO], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCustomOrder' : IDL.Func([IDL.Text], [IDL.Opt(CustomOrder)], ['query']),
+  'getCustomOrders' : IDL.Func([], [IDL.Vec(CustomOrder)], ['query']),
   'getCustomer' : IDL.Func([IDL.Text], [IDL.Opt(Customer)], ['query']),
   'getCustomers' : IDL.Func([], [IDL.Vec(CustomerDTO)], ['query']),
   'getGoldRate' : IDL.Func([], [GoldRateDTO], ['query']),
@@ -151,6 +266,8 @@ export const idlService = IDL.Service({
   'getJobOrders' : IDL.Func([], [IDL.Vec(JobOrder)], ['query']),
   'getPaidInvoices' : IDL.Func([], [IDL.Vec(Invoice)], ['query']),
   'getPaymentHistory' : IDL.Func([IDL.Text], [IDL.Vec(Invoice)], ['query']),
+  'getRepairOrder' : IDL.Func([IDL.Text], [IDL.Opt(RepairOrder)], ['query']),
+  'getRepairOrders' : IDL.Func([], [IDL.Vec(RepairOrder)], ['query']),
   'getSettings' : IDL.Func([], [SettingsDTO], ['query']),
   'getTotalSales' : IDL.Func([], [IDL.Float64], ['query']),
   'getTotalUdharPending' : IDL.Func([], [IDL.Float64], ['query']),
@@ -166,15 +283,28 @@ export const idlService = IDL.Service({
   'login' : IDL.Func([IDL.Text, IDL.Text], [UserDTO], []),
   'receivePayment' : IDL.Func([IDL.Text, IDL.Float64], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateCustomOrder' : IDL.Func([CustomOrderUpdateDTO], [], []),
   'updateGoldRate' : IDL.Func([GoldRateDTO], [], []),
   'updateInvoiceStatus' : IDL.Func([InvoiceUpdateDTO], [], []),
   'updateJobOrder' : IDL.Func([JobOrderUpdateDTO], [], []),
+  'updateRepairOrder' : IDL.Func([RepairOrderUpdateDTO], [], []),
   'updateSettings' : IDL.Func([SettingsDTO], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _CaffeineStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _CaffeineStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const CustomerDTO = IDL.Record({
     'name' : IDL.Text,
     'address' : IDL.Text,
@@ -184,6 +314,17 @@ export const idlFactory = ({ IDL }) => {
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
+  });
+  const Time = IDL.Int;
+  const CustomOrderDTO = IDL.Record({
+    'customerName' : IDL.Text,
+    'itemDescription' : IDL.Text,
+    'designNotes' : IDL.Text,
+    'dueDate' : Time,
+    'advancePaid' : IDL.Float64,
+    'phone' : IDL.Text,
+    'estimatedCost' : IDL.Float64,
+    'referenceImageHash' : IDL.Opt(IDL.Text),
   });
   const InvoiceItem = IDL.Record({
     'weight' : IDL.Float64,
@@ -201,12 +342,19 @@ export const idlFactory = ({ IDL }) => {
     'items' : IDL.Vec(InvoiceItem),
     'partialPayment' : IDL.Float64,
   });
-  const Time = IDL.Int;
   const JobOrderDTO = IDL.Record({
     'customerName' : IDL.Text,
     'assignedKaragir' : IDL.Text,
     'dueDate' : Time,
     'description' : IDL.Text,
+  });
+  const RepairOrderDTO = IDL.Record({
+    'customerName' : IDL.Text,
+    'itemDescription' : IDL.Text,
+    'notes' : IDL.Text,
+    'phone' : IDL.Text,
+    'estimatedCost' : IDL.Float64,
+    'referenceImageHash' : IDL.Opt(IDL.Text),
   });
   const Role = IDL.Variant({
     'karagir' : IDL.Null,
@@ -224,6 +372,25 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'role' : Role,
     'phone' : IDL.Text,
+  });
+  const CustomOrder = IDL.Record({
+    'id' : IDL.Text,
+    'customerName' : IDL.Text,
+    'status' : IDL.Variant({
+      'delivered' : IDL.Null,
+      'inProgress' : IDL.Null,
+      'received' : IDL.Null,
+      'ready' : IDL.Null,
+    }),
+    'itemDescription' : IDL.Text,
+    'createdAt' : Time,
+    'designNotes' : IDL.Text,
+    'dueDate' : Time,
+    'updatedAt' : Time,
+    'advancePaid' : IDL.Float64,
+    'phone' : IDL.Text,
+    'estimatedCost' : IDL.Float64,
+    'referenceImageHash' : IDL.Opt(IDL.Text),
   });
   const Customer = IDL.Record({
     'name' : IDL.Text,
@@ -268,12 +435,39 @@ export const idlFactory = ({ IDL }) => {
     'updatedAt' : Time,
     'notes' : IDL.Text,
   });
+  const RepairOrder = IDL.Record({
+    'id' : IDL.Text,
+    'customerName' : IDL.Text,
+    'status' : IDL.Variant({
+      'delivered' : IDL.Null,
+      'inProgress' : IDL.Null,
+      'received' : IDL.Null,
+      'ready' : IDL.Null,
+    }),
+    'itemDescription' : IDL.Text,
+    'createdAt' : Time,
+    'updatedAt' : Time,
+    'notes' : IDL.Text,
+    'phone' : IDL.Text,
+    'estimatedCost' : IDL.Float64,
+    'referenceImageHash' : IDL.Opt(IDL.Text),
+  });
   const SettingsDTO = IDL.Record({
     'gstNumber' : IDL.Text,
     'address' : IDL.Text,
     'defaultLanguage' : IDL.Text,
     'shopName' : IDL.Text,
     'phone' : IDL.Text,
+  });
+  const CustomOrderUpdateDTO = IDL.Record({
+    'id' : IDL.Text,
+    'status' : IDL.Variant({
+      'delivered' : IDL.Null,
+      'inProgress' : IDL.Null,
+      'received' : IDL.Null,
+      'ready' : IDL.Null,
+    }),
+    'designNotes' : IDL.Text,
   });
   const InvoiceUpdateDTO = IDL.Record({
     'id' : IDL.Text,
@@ -293,16 +487,56 @@ export const idlFactory = ({ IDL }) => {
     }),
     'notes' : IDL.Text,
   });
+  const RepairOrderUpdateDTO = IDL.Record({
+    'id' : IDL.Text,
+    'status' : IDL.Variant({
+      'delivered' : IDL.Null,
+      'inProgress' : IDL.Null,
+      'received' : IDL.Null,
+      'ready' : IDL.Null,
+    }),
+    'notes' : IDL.Text,
+  });
   
   return IDL.Service({
+    '_caffeineStorageBlobIsLive' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Bool],
+        ['query'],
+      ),
+    '_caffeineStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_caffeineStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_CaffeineStorageCreateCertificateResult],
+        [],
+      ),
+    '_caffeineStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_CaffeineStorageRefillInformation)],
+        [_CaffeineStorageRefillResult],
+        [],
+      ),
+    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addCustomer' : IDL.Func([CustomerDTO], [IDL.Text], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createCustomOrder' : IDL.Func([CustomOrderDTO], [IDL.Text], []),
     'createInvoice' : IDL.Func([InvoiceDTO], [IDL.Text], []),
     'createJobOrder' : IDL.Func([JobOrderDTO], [IDL.Text], []),
+    'createRepairOrder' : IDL.Func([RepairOrderDTO], [IDL.Text], []),
     'createUser' : IDL.Func([UserDTO], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCustomOrder' : IDL.Func([IDL.Text], [IDL.Opt(CustomOrder)], ['query']),
+    'getCustomOrders' : IDL.Func([], [IDL.Vec(CustomOrder)], ['query']),
     'getCustomer' : IDL.Func([IDL.Text], [IDL.Opt(Customer)], ['query']),
     'getCustomers' : IDL.Func([], [IDL.Vec(CustomerDTO)], ['query']),
     'getGoldRate' : IDL.Func([], [GoldRateDTO], ['query']),
@@ -328,6 +562,8 @@ export const idlFactory = ({ IDL }) => {
     'getJobOrders' : IDL.Func([], [IDL.Vec(JobOrder)], ['query']),
     'getPaidInvoices' : IDL.Func([], [IDL.Vec(Invoice)], ['query']),
     'getPaymentHistory' : IDL.Func([IDL.Text], [IDL.Vec(Invoice)], ['query']),
+    'getRepairOrder' : IDL.Func([IDL.Text], [IDL.Opt(RepairOrder)], ['query']),
+    'getRepairOrders' : IDL.Func([], [IDL.Vec(RepairOrder)], ['query']),
     'getSettings' : IDL.Func([], [SettingsDTO], ['query']),
     'getTotalSales' : IDL.Func([], [IDL.Float64], ['query']),
     'getTotalUdharPending' : IDL.Func([], [IDL.Float64], ['query']),
@@ -343,9 +579,11 @@ export const idlFactory = ({ IDL }) => {
     'login' : IDL.Func([IDL.Text, IDL.Text], [UserDTO], []),
     'receivePayment' : IDL.Func([IDL.Text, IDL.Float64], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateCustomOrder' : IDL.Func([CustomOrderUpdateDTO], [], []),
     'updateGoldRate' : IDL.Func([GoldRateDTO], [], []),
     'updateInvoiceStatus' : IDL.Func([InvoiceUpdateDTO], [], []),
     'updateJobOrder' : IDL.Func([JobOrderUpdateDTO], [], []),
+    'updateRepairOrder' : IDL.Func([RepairOrderUpdateDTO], [], []),
     'updateSettings' : IDL.Func([SettingsDTO], [], []),
   });
 };

@@ -36,13 +36,15 @@ import {
   useAddCustomer,
   useCreateInvoice,
   useCustomers,
-  useGoldRate,
-  useUpdateGoldRate,
+  useGoldRates,
+  useUpdateGoldRates,
 } from "../hooks/useQueries";
 import { t } from "../translations";
 
 interface BillingItem extends InvoiceItem {
   tempId: string;
+  makingCharges: number;
+  makingChargeType: "fixed" | "percent";
 }
 
 interface EditingState {
@@ -53,15 +55,27 @@ interface EditingState {
   rate: string;
 }
 
-const PURITY_OPTIONS = ["24K", "22K", "18K", "14K", "Silver 925", "Silver 999"];
+const PURITY_OPTIONS = [
+  { label: "24K", key: "gold24k" },
+  { label: "22K", key: "gold22k" },
+  { label: "18K", key: "gold18k" },
+  { label: "Silver", key: "silver" },
+];
 
 export default function BillingPage() {
   const { lang } = useLang();
   const { data: customers = [] } = useCustomers();
-  const { data: goldRateData } = useGoldRate();
+  const { data: goldRatesData } = useGoldRates();
   const createInvoice = useCreateInvoice();
   const addCustomer = useAddCustomer();
-  const updateGoldRate = useUpdateGoldRate();
+  const updateGoldRates = useUpdateGoldRates();
+
+  const goldRates = goldRatesData ?? {
+    gold24k: 0,
+    gold22k: 0,
+    gold18k: 0,
+    silver: 0,
+  };
 
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [invoiceLang, setInvoiceLang] = useState<"en" | "mr">(lang);
@@ -78,9 +92,13 @@ export default function BillingPage() {
   );
 
   // Gold rate editing
-  const [editingRate, setEditingRate] = useState(false);
-  const [rateInput, setRateInput] = useState("");
-  const currentGoldRate = goldRateData?.ratePerGram ?? 6500;
+  const [editingRates, setEditingRates] = useState(false);
+  const [rateInputs, setRateInputs] = useState({
+    gold24k: "",
+    gold22k: "",
+    gold18k: "",
+    silver: "",
+  });
 
   // Add item modal
   const [addItemOpen, setAddItemOpen] = useState(false);
@@ -88,7 +106,9 @@ export default function BillingPage() {
     description: "",
     purity: "22K",
     weight: "",
-    rate: String(currentGoldRate),
+    rate: String(goldRates.gold22k || ""),
+    makingCharges: "",
+    makingChargeType: "fixed" as "fixed" | "percent",
   });
 
   // Add customer modal
@@ -113,6 +133,23 @@ export default function BillingPage() {
   const generateTempId = () =>
     `item_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
+  function getRateForPurity(purity: string): number {
+    if (purity === "24K") return goldRates.gold24k || 0;
+    if (purity === "22K") return goldRates.gold22k || 0;
+    if (purity === "18K") return goldRates.gold18k || 0;
+    if (purity === "Silver") return goldRates.silver || 0;
+    return 0;
+  }
+
+  function handlePurityChange(purity: string) {
+    const rate = getRateForPurity(purity);
+    setNewItem((p) => ({
+      ...p,
+      purity,
+      rate: rate > 0 ? String(rate) : p.rate,
+    }));
+  }
+
   function addItem() {
     const weight = Number.parseFloat(newItem.weight);
     const rate = Number.parseFloat(newItem.rate);
@@ -128,20 +165,28 @@ export default function BillingPage() {
       );
       return;
     }
+    const baseAmount = weight * rate;
+    const mc = Number.parseFloat(newItem.makingCharges) || 0;
+    const makingChargesAmount =
+      newItem.makingChargeType === "percent" ? (baseAmount * mc) / 100 : mc;
     const item: BillingItem = {
       tempId: generateTempId(),
       description: newItem.description,
       purity: Number.parseFloat(newItem.purity) || 22,
       weight,
       rate,
-      total: weight * rate,
+      makingCharges: makingChargesAmount,
+      makingChargeType: newItem.makingChargeType,
+      total: baseAmount + makingChargesAmount,
     };
     setItems((prev) => [...prev, item]);
     setNewItem({
       description: "",
       purity: "22K",
       weight: "",
-      rate: String(currentGoldRate),
+      rate: String(goldRates.gold22k || ""),
+      makingCharges: "",
+      makingChargeType: "fixed",
     });
     setAddItemOpen(false);
   }
@@ -193,16 +238,21 @@ export default function BillingPage() {
     setItems((prev) => prev.filter((it) => it.tempId !== tempId));
   }
 
-  const handleUpdateGoldRate = useCallback(async () => {
-    const rate = Number.parseFloat(rateInput);
-    if (Number.isNaN(rate) || rate <= 0) {
-      toast.error("Invalid rate");
-      return;
+  const handleUpdateGoldRates = useCallback(async () => {
+    const rates = {
+      gold24k: Number.parseFloat(rateInputs.gold24k) || goldRates.gold24k,
+      gold22k: Number.parseFloat(rateInputs.gold22k) || goldRates.gold22k,
+      gold18k: Number.parseFloat(rateInputs.gold18k) || goldRates.gold18k,
+      silver: Number.parseFloat(rateInputs.silver) || goldRates.silver,
+    };
+    try {
+      await updateGoldRates.mutateAsync(rates);
+      setEditingRates(false);
+      toast.success(lang === "mr" ? "सोन्याचे दर अपडेट केले" : "Gold rates updated");
+    } catch {
+      toast.error(lang === "mr" ? "काहीतरी चुकले" : "Failed to update rates");
     }
-    await updateGoldRate.mutateAsync({ ratePerGram: rate });
-    setEditingRate(false);
-    toast.success(lang === "mr" ? "सोन्याचा दर अपडेट केला" : "Gold rate updated");
-  }, [rateInput, updateGoldRate, lang]);
+  }, [rateInputs, goldRates, updateGoldRates, lang]);
 
   async function handleAddCustomer() {
     if (!newCust.name || !newCust.phone) {
@@ -301,7 +351,7 @@ export default function BillingPage() {
         {t(lang, "newInvoice")}
       </h1>
 
-      {/* Customer + Gold Rate row */}
+      {/* Customer + Gold Rates row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Customer */}
         <div className="space-y-1.5">
@@ -373,56 +423,95 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Gold Rate */}
+        {/* Gold Rates Panel */}
         <div className="space-y-1.5">
-          <Label>{t(lang, "goldRate")}</Label>
-          {editingRate ? (
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                value={rateInput}
-                onChange={(e) => setRateInput(e.target.value)}
-                className="bg-input"
-                placeholder={String(currentGoldRate)}
-              />
-              <Button
-                size="sm"
-                onClick={handleUpdateGoldRate}
-                disabled={updateGoldRate.isPending}
-                className="gold-gradient text-primary-foreground"
-              >
-                {updateGoldRate.isPending ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Check size={14} />
-                )}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setEditingRate(false)}
-              >
-                <X size={14} />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-md border border-border bg-input">
-              <span className="text-primary font-bold text-lg">
-                ₹{currentGoldRate.toLocaleString("en-IN")}
-              </span>
-              <span className="text-muted-foreground text-xs">/g</span>
+          <div className="flex items-center justify-between">
+            <Label>
+              {lang === "mr"
+                ? "सोने/चांदी दर (₹/ग्रॅम)"
+                : "Gold/Silver Rates (₹/g)"}
+            </Label>
+            {!editingRates && (
               <Button
                 data-ocid="billing.edit_button"
                 variant="ghost"
                 size="sm"
-                className="ml-auto h-7 text-xs text-primary"
+                className="h-6 text-xs text-primary px-2"
                 onClick={() => {
-                  setRateInput(String(currentGoldRate));
-                  setEditingRate(true);
+                  setRateInputs({
+                    gold24k: String(goldRates.gold24k || ""),
+                    gold22k: String(goldRates.gold22k || ""),
+                    gold18k: String(goldRates.gold18k || ""),
+                    silver: String(goldRates.silver || ""),
+                  });
+                  setEditingRates(true);
                 }}
               >
                 {t(lang, "editRate")}
               </Button>
+            )}
+          </div>
+          {editingRates ? (
+            <div className="bg-card border border-border rounded-lg p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                {PURITY_OPTIONS.map((p) => (
+                  <div key={p.key} className="space-y-1">
+                    <Label className="text-xs">{p.label}</Label>
+                    <Input
+                      type="number"
+                      value={rateInputs[p.key as keyof typeof rateInputs]}
+                      onChange={(e) =>
+                        setRateInputs((prev) => ({
+                          ...prev,
+                          [p.key]: e.target.value,
+                        }))
+                      }
+                      placeholder="₹/g"
+                      className="h-8 bg-input text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleUpdateGoldRates}
+                  disabled={updateGoldRates.isPending}
+                  className="gold-gradient text-primary-foreground flex-1"
+                >
+                  {updateGoldRates.isPending ? (
+                    <Loader2 size={14} className="animate-spin mr-1" />
+                  ) : (
+                    <Check size={14} className="mr-1" />
+                  )}
+                  {lang === "mr" ? "जतन करा" : "Save Rates"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingRates(false)}
+                >
+                  <X size={14} />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {PURITY_OPTIONS.map((p) => (
+                <div
+                  key={p.key}
+                  className="bg-card border border-border rounded-md px-2 py-1.5 text-center"
+                >
+                  <p className="text-xs text-muted-foreground">{p.label}</p>
+                  <p className="text-sm font-bold text-primary">
+                    {goldRates[p.key as keyof typeof goldRates] > 0 ? (
+                      `₹${Number(goldRates[p.key as keyof typeof goldRates]).toLocaleString("en-IN")}`
+                    ) : (
+                      <span className="text-muted-foreground text-xs">--</span>
+                    )}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -439,7 +528,7 @@ export default function BillingPage() {
             onClick={() => {
               setNewItem((prev) => ({
                 ...prev,
-                rate: String(currentGoldRate),
+                rate: String(goldRates.gold22k || ""),
               }));
               setAddItemOpen(true);
             }}
@@ -449,7 +538,6 @@ export default function BillingPage() {
           </Button>
         </div>
 
-        {/* Table */}
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -496,7 +584,6 @@ export default function BillingPage() {
                       className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
                     >
                       {editingId === item.tempId && editState ? (
-                        // Inline edit row
                         <>
                           <td className="px-3 py-2 text-muted-foreground">
                             {idx + 1}
@@ -577,7 +664,6 @@ export default function BillingPage() {
                           </td>
                         </>
                       ) : (
-                        // Display row
                         <>
                           <td className="px-3 py-2.5 text-muted-foreground">
                             {idx + 1}
@@ -632,7 +718,6 @@ export default function BillingPage() {
 
       {/* GST + Totals */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* GST */}
         <div className="space-y-3 bg-card rounded-lg border border-border p-4">
           <div className="flex items-center gap-3">
             <Switch
@@ -669,7 +754,6 @@ export default function BillingPage() {
           )}
         </div>
 
-        {/* Totals */}
         <div className="space-y-2 bg-card rounded-lg border border-border p-4">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t(lang, "subtotal")}</span>
@@ -716,7 +800,6 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Udhar warning */}
       {udharBalance > 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.97 }}
@@ -734,7 +817,6 @@ export default function BillingPage() {
         </motion.div>
       )}
 
-      {/* Notes + Language */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>{t(lang, "notes")}</Label>
@@ -754,22 +836,14 @@ export default function BillingPage() {
             <button
               type="button"
               onClick={() => setInvoiceLang("mr")}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                invoiceLang === "mr"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${invoiceLang === "mr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               मराठी
             </button>
             <button
               type="button"
               onClick={() => setInvoiceLang("en")}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                invoiceLang === "en"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${invoiceLang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               English
             </button>
@@ -777,7 +851,6 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Sticky action buttons */}
       <div className="fixed bottom-0 left-0 right-0 md:static md:flex gap-3 bg-background/95 backdrop-blur-sm border-t border-border md:border-0 md:bg-transparent p-4 md:p-0 z-20 no-print">
         <Button
           data-ocid="billing.secondary_button"
@@ -832,17 +905,15 @@ export default function BillingPage() {
                 <Label>{t(lang, "purity")}</Label>
                 <Select
                   value={newItem.purity}
-                  onValueChange={(v) =>
-                    setNewItem((p) => ({ ...p, purity: v }))
-                  }
+                  onValueChange={handlePurityChange}
                 >
                   <SelectTrigger className="bg-input">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {PURITY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
+                      <SelectItem key={opt.key} value={opt.label}>
+                        {opt.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -872,17 +943,61 @@ export default function BillingPage() {
                 className="bg-input"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label>
+                {lang === "mr" ? "मजुरी (Making Charges)" : "Making Charges"}
+              </Label>
+              <div className="flex gap-2">
+                <div className="flex rounded-md overflow-hidden border border-border">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewItem((p) => ({ ...p, makingChargeType: "fixed" }))
+                    }
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${newItem.makingChargeType === "fixed" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
+                  >
+                    ₹ Fixed
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewItem((p) => ({ ...p, makingChargeType: "percent" }))
+                    }
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${newItem.makingChargeType === "percent" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
+                  >
+                    % Rate
+                  </button>
+                </div>
+                <Input
+                  type="number"
+                  value={newItem.makingCharges}
+                  onChange={(e) =>
+                    setNewItem((p) => ({ ...p, makingCharges: e.target.value }))
+                  }
+                  placeholder={
+                    newItem.makingChargeType === "fixed" ? "₹ 0" : "0%"
+                  }
+                  className="bg-input flex-1"
+                />
+              </div>
+            </div>
             {newItem.weight && newItem.rate && (
               <div className="bg-secondary rounded-md px-3 py-2 flex justify-between">
                 <span className="text-sm text-muted-foreground">
                   {t(lang, "total")}
                 </span>
                 <span className="font-bold text-primary">
-                  ₹
-                  {(
-                    (Number.parseFloat(newItem.weight) || 0) *
-                    (Number.parseFloat(newItem.rate) || 0)
-                  ).toLocaleString("en-IN")}
+                  ₹{(() => {
+                    const base =
+                      (Number.parseFloat(newItem.weight) || 0) *
+                      (Number.parseFloat(newItem.rate) || 0);
+                    const mc = Number.parseFloat(newItem.makingCharges) || 0;
+                    const mcAmt =
+                      newItem.makingChargeType === "percent"
+                        ? (base * mc) / 100
+                        : mc;
+                    return (base + mcAmt).toLocaleString("en-IN");
+                  })()}
                 </span>
               </div>
             )}

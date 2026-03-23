@@ -14,6 +14,9 @@ const en: TranslationMap = {
   udhar: "Udhar Ledger",
   reports: "Reports",
   karagir: "Karagir / Jobs",
+  repair: "Repair Orders",
+  customOrders: "Custom Orders",
+  completedOrders: "Completed Orders",
   settings: "Settings",
   logout: "Logout",
 
@@ -194,7 +197,7 @@ const en: TranslationMap = {
 const mr: TranslationMap = {
   // App
   appName: "ओमकार ज्वेलर्स",
-  tagline: "परवडणारी लक्झरी दागिने",
+  tagline: "प्रत्येक दागिन्यात शुद्धतेची ओळख.",
 
   // Nav
   dashboard: "डॅशबोर्ड",
@@ -203,6 +206,9 @@ const mr: TranslationMap = {
   udhar: "उधार खातावही",
   reports: "अहवाल",
   karagir: "कारागीर / काम",
+  repair: "दुरुस्ती ऑर्डर",
+  customOrders: "कस्टम ऑर्डर",
+  completedOrders: "पूर्ण ऑर्डर",
   settings: "सेटिंग्ज",
   logout: "बाहेर पडा",
 

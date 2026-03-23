@@ -17,13 +17,6 @@ import type { Role } from "../backend";
 import { useActor } from "../hooks/useActor";
 import { t } from "../translations";
 
-const DEMO_ACCOUNTS = [
-  { phone: "9999999999", password: "owner123", role: "Owner" },
-  { phone: "8888888888", password: "manager123", role: "Manager" },
-  { phone: "7777777777", password: "staff123", role: "Staff" },
-  { phone: "6666666666", password: "karagir123", role: "Karagir" },
-];
-
 export default function LoginPage() {
   const { lang } = useLang();
   const { setUser } = useAuth();
@@ -44,6 +37,10 @@ export default function LoginPage() {
     setError("");
     try {
       const result = await actor.login(phone.trim(), password);
+      localStorage.setItem(
+        "omkar_creds",
+        JSON.stringify({ phone: phone.trim(), password }),
+      );
       setUser({
         name: result.name,
         phone: result.phone,
@@ -55,11 +52,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function fillDemo(acc: (typeof DEMO_ACCOUNTS)[0]) {
-    setPhone(acc.phone);
-    setPassword(acc.password);
   }
 
   return (
@@ -104,7 +96,7 @@ export default function LoginPage() {
                   id="phone"
                   data-ocid="login.input"
                   type="tel"
-                  placeholder="9999999999"
+                  placeholder="मोबाइल नंबर"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="bg-input border-border text-base"
@@ -154,30 +146,6 @@ export default function LoginPage() {
                 {loading ? t(lang, "loading") : t(lang, "loginBtn")}
               </Button>
             </form>
-
-            {/* Demo accounts */}
-            <div className="mt-6">
-              <p className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
-                <span className="flex-1 border-t border-border" />
-                {t(lang, "demoAccounts")}
-                <span className="flex-1 border-t border-border" />
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_ACCOUNTS.map((acc) => (
-                  <button
-                    type="button"
-                    key={acc.phone}
-                    onClick={() => fillDemo(acc)}
-                    className="text-left px-3 py-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors"
-                  >
-                    <p className="text-xs font-semibold text-primary">
-                      {acc.role}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{acc.phone}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
 

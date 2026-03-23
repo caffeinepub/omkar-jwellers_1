@@ -62,6 +62,10 @@ export default function KaragirPage() {
         )
       : jobs;
 
+  const activeJobs = myJobs.filter(
+    (j) => j.status !== Variant_pending_completed_inProgress.completed,
+  );
+
   async function handleCreate() {
     if (!newJob.customerName || !newJob.description) {
       toast.error(
@@ -150,14 +154,14 @@ export default function KaragirPage() {
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
-      ) : myJobs.length === 0 ? (
+      ) : activeJobs.length === 0 ? (
         <div data-ocid="karagir.empty_state" className="text-center py-16">
           <Hammer size={40} className="mx-auto mb-3 opacity-40" />
           <p className="text-muted-foreground">{t(lang, "noJobs")}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {myJobs.map((job, idx) => (
+          {activeJobs.map((job, idx) => (
             <Card
               key={job.id}
               data-ocid={`karagir.item.${idx + 1}`}

@@ -7,12 +7,16 @@ import {
   useState,
 } from "react";
 import Layout from "./components/Layout";
+import SessionRestorer from "./components/SessionRestorer";
 import BillingPage from "./pages/BillingPage";
+import CompletedOrdersPage from "./pages/CompletedOrdersPage";
+import CustomOrdersPage from "./pages/CustomOrdersPage";
 import CustomersPage from "./pages/CustomersPage";
 import DashboardPage from "./pages/DashboardPage";
 import InvoicePage from "./pages/InvoicePage";
 import KaragirPage from "./pages/KaragirPage";
 import LoginPage from "./pages/LoginPage";
+import RepairPage from "./pages/RepairPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import UdharPage from "./pages/UdharPage";
@@ -67,7 +71,15 @@ export default function App() {
   const [user, setUserState] = useState<AuthUser | null>(() => {
     try {
       const stored = localStorage.getItem("omkar_auth");
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      // If there's no omkar_creds, the session can't be re-established.
+      // Force the user to log in again so creds are stored properly.
+      const creds = localStorage.getItem("omkar_creds");
+      if (!creds) {
+        localStorage.removeItem("omkar_auth");
+        return null;
+      }
+      return JSON.parse(stored) as AuthUser;
     } catch {
       return null;
     }
@@ -93,6 +105,7 @@ export default function App() {
 
   const logout = useCallback(() => {
     setUser(null);
+    localStorage.removeItem("omkar_creds");
     window.location.hash = "/login";
   }, [setUser]);
 
@@ -101,7 +114,6 @@ export default function App() {
     localStorage.setItem("omkar_lang", l);
   }, []);
 
-  // Public invoice route — no auth required
   const invoiceId = parseInvoiceRoute(currentRoute);
   if (invoiceId) {
     return (
@@ -114,7 +126,6 @@ export default function App() {
     );
   }
 
-  // Auth gate
   if (!user) {
     return (
       <LangContext.Provider value={{ lang, setLang }}>
@@ -134,8 +145,10 @@ export default function App() {
     if (currentRoute === "/udhar") return <UdharPage />;
     if (currentRoute === "/reports") return <ReportsPage />;
     if (currentRoute === "/karagir") return <KaragirPage />;
+    if (currentRoute === "/repair") return <RepairPage />;
+    if (currentRoute === "/custom-orders") return <CustomOrdersPage />;
+    if (currentRoute === "/completed") return <CompletedOrdersPage />;
     if (currentRoute === "/settings") return <SettingsPage />;
-    // Handle /billing?invoiceId=xxx for viewing generated invoice
     if (currentRoute.startsWith("/view-invoice/")) {
       const id = currentRoute.replace("/view-invoice/", "");
       return <InvoicePage invoiceId={id} isPublic={false} />;
@@ -146,6 +159,7 @@ export default function App() {
   return (
     <LangContext.Provider value={{ lang, setLang }}>
       <AuthContext.Provider value={{ user, setUser, logout }}>
+        <SessionRestorer />
         <Layout currentRoute={currentRoute}>{renderPage()}</Layout>
         <Toaster richColors position="top-right" />
       </AuthContext.Provider>
