@@ -126,7 +126,7 @@ export default function BillingPage() {
   const sgstAmount = gstEnabled
     ? (subtotal * (Number.parseFloat(sgstPct) || 0)) / 100
     : 0;
-  const grandTotal = subtotal + cgstAmount + sgstAmount;
+  const grandTotal = Math.round(subtotal + cgstAmount + sgstAmount);
   const paidAmt = Number.parseFloat(amountPaid) || 0;
   const udharBalance = Math.max(0, grandTotal - paidAmt);
 
@@ -286,7 +286,10 @@ export default function BillingPage() {
     try {
       const id = await createInvoice.mutateAsync({
         customerId: selectedCustomerId,
-        items: items.map(({ tempId: _t, ...it }) => it),
+        items: items.map(
+          ({ tempId: _t, makingCharges: _mc, makingChargeType: _mct, ...it }) =>
+            it,
+        ),
         gst: gstEnabled,
         gstPercent: gstEnabled
           ? (Number.parseFloat(cgstPct) || 0) +
@@ -317,7 +320,10 @@ export default function BillingPage() {
     try {
       const id = await createInvoice.mutateAsync({
         customerId: selectedCustomerId,
-        items: items.map(({ tempId: _t, ...it }) => it),
+        items: items.map(
+          ({ tempId: _t, makingCharges: _mc, makingChargeType: _mct, ...it }) =>
+            it,
+        ),
         gst: gstEnabled,
         gstPercent: gstEnabled
           ? (Number.parseFloat(cgstPct) || 0) +

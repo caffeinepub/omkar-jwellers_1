@@ -229,6 +229,9 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateCustomOrder(update: CustomOrderUpdateDTO): Promise<void>;
     updateGoldRate(newRate: GoldRateDTO): Promise<void>;
+    addCustomerWithCreds(phone: string, password: string, customer: CustomerDTO): Promise<string>;
+    updateGoldRatesWithCreds(phone: string, password: string, newRates: GoldRatesDTO): Promise<void>;
+    getGoldRatesPublic(): Promise<GoldRatesDTO>;
     updateGoldRates(newRates: GoldRatesDTO): Promise<void>;
     updateInvoiceStatus(update: InvoiceUpdateDTO): Promise<void>;
     updateJobOrder(update: JobOrderUpdateDTO): Promise<void>;

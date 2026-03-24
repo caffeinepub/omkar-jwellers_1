@@ -45,6 +45,23 @@ async function doLogin(actor: backendInterface): Promise<void> {
  *
  * This replaces the old silent `ensureAuth` that was hiding errors.
  */
+
+/**
+ * Gets stored credentials for direct credential-based backend calls.
+ * Returns null if not available.
+ */
+function getCredsOrNull(): { phone: string; password: string } | null {
+  try {
+    const raw = localStorage.getItem("omkar_creds");
+    if (!raw) return null;
+    const creds = JSON.parse(raw) as { phone: string; password: string };
+    if (!creds.phone || !creds.password) return null;
+    return creds;
+  } catch {
+    return null;
+  }
+}
+
 async function withAuth<T>(
   actor: backendInterface,
   fn: () => Promise<T>,
@@ -112,7 +129,8 @@ export function useGoldRates() {
     queryKey: ["goldRates"],
     queryFn: async () => {
       if (!actor) return { gold24k: 0, gold22k: 0, gold18k: 0, silver: 0 };
-      return actor.getGoldRates();
+      // Use public endpoint (no auth required) so this always works
+      return actor.getGoldRatesPublic();
     },
     enabled: !!actor && !isFetching,
   });
@@ -225,6 +243,16 @@ export function useAddCustomer() {
   return useMutation({
     mutationFn: async (customer: CustomerDTO) => {
       if (!actor) throw new Error("No actor");
+      // Use credential-based auth to bypass unreliable session state
+      const creds = getCredsOrNull();
+      if (creds) {
+        return actor.addCustomerWithCreds(
+          creds.phone,
+          creds.password,
+          customer,
+        );
+      }
+      // Fallback to session auth if no creds stored
       return withAuth(actor, () => actor.addCustomer(customer));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
@@ -299,6 +327,16 @@ export function useUpdateGoldRates() {
   return useMutation({
     mutationFn: async (rates: GoldRatesDTO) => {
       if (!actor) throw new Error("No actor");
+      // Use credential-based auth to bypass unreliable session state
+      const creds = getCredsOrNull();
+      if (creds) {
+        return actor.updateGoldRatesWithCreds(
+          creds.phone,
+          creds.password,
+          rates,
+        );
+      }
+      // Fallback to session auth
       return withAuth(actor, () => actor.updateGoldRates(rates));
     },
     onSuccess: () => {

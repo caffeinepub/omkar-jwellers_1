@@ -180,7 +180,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
                 <img
-                  src="/assets/generated/omkar-jwellers-logo-transparent.dim_200x200.png"
+                  src="/assets/uploads/untitled_design-019d2110-b3c6-757d-b95e-8bd41c35b147-1.png"
                   alt="OMKAR JWELLERS"
                   className="w-16 h-16 object-contain"
                 />

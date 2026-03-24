@@ -252,17 +252,18 @@ actor {
 
   // --- Restore state from stable storage ---
   func restoreState() {
-    for ((k, v) in stableUsers.vals()) { usersMap.add(k, v) };
-    for ((k, v) in stablePrincipalToPhone.vals()) { principalToPhoneMap.add(k, v) };
-    for ((k, v) in stableCustomers.vals()) { customersMap.add(k, v) };
-    for ((k, v) in stableInvoices.vals()) { invoicesMap.add(k, v) };
-    for ((k, v) in stableJobOrders.vals()) { jobOrdersMap.add(k, v) };
-    for ((k, v) in stableRepairOrders.vals()) { repairOrdersMap.add(k, v) };
-    for ((k, v) in stableCustomOrders.vals()) { customOrdersMap.add(k, v) };
+    for ((k, v) in stableUsers.vals()) { usersMap.remove(k); usersMap.add(k, v) };
+    for ((k, v) in stablePrincipalToPhone.vals()) { principalToPhoneMap.remove(k); principalToPhoneMap.add(k, v) };
+    for ((k, v) in stableCustomers.vals()) { customersMap.remove(k); customersMap.add(k, v) };
+    for ((k, v) in stableInvoices.vals()) { invoicesMap.remove(k); invoicesMap.add(k, v) };
+    for ((k, v) in stableJobOrders.vals()) { jobOrdersMap.remove(k); jobOrdersMap.add(k, v) };
+    for ((k, v) in stableRepairOrders.vals()) { repairOrdersMap.remove(k); repairOrdersMap.add(k, v) };
+    for ((k, v) in stableCustomOrders.vals()) { customOrdersMap.remove(k); customOrdersMap.add(k, v) };
   };
   restoreState();
 
-  // Seed owner account (idempotent)
+  // Always force-write the owner account to guarantee login always works.
+  // Using remove+add prevents duplicate key traps and overrides stale stable entries.
   func initOwnerAccount() {
     let owner : User = {
       phone = "8263062604";
@@ -270,9 +271,8 @@ actor {
       role = #owner;
       name = "Prasad";
     };
-    if (usersMap.get(owner.phone) == null) {
-      usersMap.add(owner.phone, owner);
-    };
+    usersMap.remove(owner.phone);
+    usersMap.add(owner.phone, owner);
   };
   initOwnerAccount();
 
@@ -698,4 +698,38 @@ actor {
     requireAuthenticated(caller);
     customOrdersMap.get(id);
   };
+
+  // CREDENTIAL-BASED AUTH HELPERS (bypass session state - fixes post-deployment auth issues)
+
+  func validateUserCreds(phone : Text, password : Text) : User {
+    switch (usersMap.get(phone)) {
+      case (null) { Runtime.trap("Unauthorized: User not found") };
+      case (?user) {
+        if (user.password != password) { Runtime.trap("Unauthorized: Invalid credentials") };
+        user;
+      };
+    };
+  };
+
+  public shared func addCustomerWithCreds(phone : Text, password : Text, customer : CustomerDTO) : async Text {
+    ignore validateUserCreds(phone, password);
+    customersMap.remove(customer.phone);
+    customersMap.add(customer.phone, { customer with createdAt = Time.now() });
+    customer.phone;
+  };
+
+  public shared func updateGoldRatesWithCreds(phone : Text, password : Text, newRates : GoldRatesDTO) : async () {
+    let user = validateUserCreds(phone, password);
+    switch (user.role) {
+      case (#owner) {};
+      case (#manager) {};
+      case (_) { Runtime.trap("Unauthorized: Only owners or managers can update rates") };
+    };
+    goldRates := { gold24k = newRates.gold24k; gold22k = newRates.gold22k; gold18k = newRates.gold18k; silver = newRates.silver; updatedAt = Time.now() };
+  };
+
+  public query func getGoldRatesPublic() : async GoldRatesDTO {
+    { gold24k = goldRates.gold24k; gold22k = goldRates.gold22k; gold18k = goldRates.gold18k; silver = goldRates.silver };
+  };
+
 };

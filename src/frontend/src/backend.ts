@@ -329,6 +329,9 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateCustomOrder(update: CustomOrderUpdateDTO): Promise<void>;
     updateGoldRate(newRate: GoldRateDTO): Promise<void>;
+    addCustomerWithCreds(phone: string, password: string, customer: CustomerDTO): Promise<string>;
+    updateGoldRatesWithCreds(phone: string, password: string, newRates: GoldRatesDTO): Promise<void>;
+    getGoldRatesPublic(): Promise<GoldRatesDTO>;
     updateGoldRates(newRates: GoldRatesDTO): Promise<void>;
     updateInvoiceStatus(update: InvoiceUpdateDTO): Promise<void>;
     updateJobOrder(update: JobOrderUpdateDTO): Promise<void>;
@@ -986,6 +989,50 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+
+    async addCustomerWithCreds(arg0: string, arg1: string, arg2: CustomerDTO): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addCustomerWithCreds(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error('unreachable');
+            }
+        } else {
+            const result = await this.actor.addCustomerWithCreds(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async updateGoldRatesWithCreds(arg0: string, arg1: string, arg2: GoldRatesDTO): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateGoldRatesWithCreds(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error('unreachable');
+            }
+        } else {
+            const result = await this.actor.updateGoldRatesWithCreds(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async getGoldRatesPublic(): Promise<GoldRatesDTO> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getGoldRatesPublic();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error('unreachable');
+            }
+        } else {
+            const result = await this.actor.getGoldRatesPublic();
+            return result;
+        }
+    }
+
     async updateInvoiceStatus(arg0: InvoiceUpdateDTO): Promise<void> {
         if (this.processError) {
             try {

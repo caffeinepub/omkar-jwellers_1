@@ -212,6 +212,12 @@ export const RepairOrderUpdateDTO = IDL.Record({
   'notes' : IDL.Text,
 });
 
+export const GoldRatesDTO = IDL.Record({
+  'gold24k' : IDL.Float64,
+  'gold22k' : IDL.Float64,
+  'gold18k' : IDL.Float64,
+  'silver' : IDL.Float64,
+});
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
       [IDL.Vec(IDL.Nat8)],
@@ -288,7 +294,12 @@ export const idlService = IDL.Service({
   'updateInvoiceStatus' : IDL.Func([InvoiceUpdateDTO], [], []),
   'updateJobOrder' : IDL.Func([JobOrderUpdateDTO], [], []),
   'updateRepairOrder' : IDL.Func([RepairOrderUpdateDTO], [], []),
-  'updateSettings' : IDL.Func([SettingsDTO], [], []),
+    'addCustomerWithCreds' : IDL.Func([IDL.Text, IDL.Text, CustomerDTO], [IDL.Text], []),
+  'getGoldRates' : IDL.Func([], [GoldRatesDTO], ['query']),
+  'getGoldRatesPublic' : IDL.Func([], [GoldRatesDTO], ['query']),
+  'updateGoldRates' : IDL.Func([GoldRatesDTO], [], []),
+  'updateGoldRatesWithCreds' : IDL.Func([IDL.Text, IDL.Text, GoldRatesDTO], [], []),
+'updateSettings' : IDL.Func([SettingsDTO], [], []),
 });
 
 export const idlInitArgs = [];
@@ -498,6 +509,12 @@ export const idlFactory = ({ IDL }) => {
     'notes' : IDL.Text,
   });
   
+  const GoldRatesDTO = IDL.Record({
+    'gold24k' : IDL.Float64,
+    'gold22k' : IDL.Float64,
+    'gold18k' : IDL.Float64,
+    'silver' : IDL.Float64,
+  });
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
@@ -584,6 +601,11 @@ export const idlFactory = ({ IDL }) => {
     'updateInvoiceStatus' : IDL.Func([InvoiceUpdateDTO], [], []),
     'updateJobOrder' : IDL.Func([JobOrderUpdateDTO], [], []),
     'updateRepairOrder' : IDL.Func([RepairOrderUpdateDTO], [], []),
+    'addCustomerWithCreds' : IDL.Func([IDL.Text, IDL.Text, CustomerDTO], [IDL.Text], []),
+    'getGoldRates' : IDL.Func([], [GoldRatesDTO], ['query']),
+    'getGoldRatesPublic' : IDL.Func([], [GoldRatesDTO], ['query']),
+    'updateGoldRates' : IDL.Func([GoldRatesDTO], [], []),
+    'updateGoldRatesWithCreds' : IDL.Func([IDL.Text, IDL.Text, GoldRatesDTO], [], []),
     'updateSettings' : IDL.Func([SettingsDTO], [], []),
   });
 };

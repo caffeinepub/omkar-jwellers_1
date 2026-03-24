@@ -196,7 +196,7 @@ const en: TranslationMap = {
 
 const mr: TranslationMap = {
   // App
-  appName: "ओमकार ज्वेलर्स",
+  appName: "ॐकार ज्वेलर्स",
   tagline: "प्रत्येक दागिन्यात शुद्धतेची ओळख.",
 
   // Nav
@@ -215,7 +215,7 @@ const mr: TranslationMap = {
   // Auth
   login: "लॉगिन",
   loginTitle: "स्वागत आहे",
-  loginSubtitle: "ओमकार ज्वेलर्समध्ये साइन इन करा",
+  loginSubtitle: "ॐकार ज्वेलर्समध्ये साइन इन करा",
   phone: "फोन नंबर",
   password: "पासवर्ड",
   loginBtn: "साइन इन",

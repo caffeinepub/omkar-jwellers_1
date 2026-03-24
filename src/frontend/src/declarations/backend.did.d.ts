@@ -253,6 +253,11 @@ export interface _SERVICE {
   'updateInvoiceStatus' : ActorMethod<[InvoiceUpdateDTO], undefined>,
   'updateJobOrder' : ActorMethod<[JobOrderUpdateDTO], undefined>,
   'updateRepairOrder' : ActorMethod<[RepairOrderUpdateDTO], undefined>,
+  'addCustomerWithCreds' : ActorMethod<[string, string, CustomerDTO], string>,
+  'getGoldRates' : ActorMethod<[], { gold24k: number, gold22k: number, gold18k: number, silver: number }>,
+  'getGoldRatesPublic' : ActorMethod<[], { gold24k: number, gold22k: number, gold18k: number, silver: number }>,
+  'updateGoldRates' : ActorMethod<[{ gold24k: number, gold22k: number, gold18k: number, silver: number }], undefined>,
+  'updateGoldRatesWithCreds' : ActorMethod<[string, string, { gold24k: number, gold22k: number, gold18k: number, silver: number }], undefined>,
   'updateSettings' : ActorMethod<[SettingsDTO], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

@@ -93,9 +93,11 @@ export default function Layout({
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full gold-gradient flex items-center justify-center">
-            <Diamond size={18} className="text-primary-foreground" />
-          </div>
+          <img
+            src="/assets/uploads/untitled_design-019d2110-b3c6-757d-b95e-8bd41c35b147-1.png"
+            alt="OMKAR JWELLERS"
+            className="w-10 h-10 object-contain"
+          />
           <div>
             <h1 className="font-display text-sm font-bold text-primary leading-tight">
               {t(lang, "appName")}
@@ -241,9 +243,11 @@ export default function Layout({
           >
             <Menu size={20} />
           </button>
-          <span className="font-display text-sm font-bold text-primary">
-            {t(lang, "appName")}
-          </span>
+          <img
+            src="/assets/uploads/untitled_design-019d2110-b3c6-757d-b95e-8bd41c35b147-1.png"
+            alt="OMKAR JWELLERS"
+            className="h-8 object-contain"
+          />
           <div className="flex rounded-md overflow-hidden border border-border">
             <button
               type="button"
