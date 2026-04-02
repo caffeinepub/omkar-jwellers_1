@@ -288,6 +288,9 @@ export interface _SERVICE {
   'getCustomOrdersWithCreds' : ActorMethod<[string, string], Array<CustomOrder>>,
   'updateSettingsWithCreds' : ActorMethod<[string, string, SettingsDTO], undefined>,
   'getSettingsPublic' : ActorMethod<[], SettingsDTO>,
+  'getUsersWithCreds' : ActorMethod<[string, string], Array<UserDTO>>,
+  'updateUserWithCreds' : ActorMethod<[string, string, UserDTO], undefined>,
+  'deleteUserWithCreds' : ActorMethod<[string, string, string], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
