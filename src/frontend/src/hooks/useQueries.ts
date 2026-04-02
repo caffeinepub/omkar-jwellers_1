@@ -387,6 +387,12 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: async (user: UserDTO) => {
       if (!actor) throw new Error("No actor");
+      // Use credential-based auth to bypass unreliable session state
+      const creds = getCredsOrNull();
+      if (creds) {
+        return actor.createUserWithCreds(creds.phone, creds.password, user);
+      }
+      // Fallback to session auth if no creds stored
       return withAuth(actor, () => actor.createUser(user));
     },
   });

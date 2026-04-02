@@ -217,6 +217,7 @@ export interface _SERVICE {
   'createJobOrder' : ActorMethod<[JobOrderDTO], string>,
   'createRepairOrder' : ActorMethod<[RepairOrderDTO], string>,
   'createUser' : ActorMethod<[UserDTO], undefined>,
+  'createUserWithCreds' : ActorMethod<[string, string, UserDTO], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCustomOrder' : ActorMethod<[string], [] | [CustomOrder]>,

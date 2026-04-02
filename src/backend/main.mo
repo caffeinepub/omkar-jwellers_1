@@ -728,6 +728,17 @@ actor {
     goldRates := { gold24k = newRates.gold24k; gold22k = newRates.gold22k; gold18k = newRates.gold18k; silver = newRates.silver; updatedAt = Time.now() };
   };
 
+  public shared func createUserWithCreds(callerPhone : Text, callerPassword : Text, userDTO : UserDTO) : async () {
+    let caller = validateUserCreds(callerPhone, callerPassword);
+    switch (caller.role) {
+      case (#owner) {};
+      case (_) { Runtime.trap("Unauthorized: Only owners can create users") };
+    };
+    if (userDTO.phone == "" or userDTO.password == "" or userDTO.name == "") { Runtime.trap("Invalid user data") };
+    if (usersMap.get(userDTO.phone) != null) { Runtime.trap("User already exists") };
+    usersMap.add(userDTO.phone, { phone = userDTO.phone; password = userDTO.password; role = userDTO.role; name = userDTO.name });
+  };
+
   public query func getGoldRatesPublic() : async GoldRatesDTO {
     { gold24k = goldRates.gold24k; gold22k = goldRates.gold22k; gold18k = goldRates.gold18k; silver = goldRates.silver };
   };

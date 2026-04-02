@@ -294,6 +294,7 @@ export interface backendInterface {
     createJobOrder(job: JobOrderDTO): Promise<string>;
     createRepairOrder(repairOrder: RepairOrderDTO): Promise<string>;
     createUser(userDTO: UserDTO): Promise<void>;
+    createUserWithCreds(callerPhone: string, callerPassword: string, userDTO: UserDTO): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomOrder(id: string): Promise<CustomOrder | null>;
@@ -534,6 +535,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.createUser(to_candid_UserDTO_n14(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async createUserWithCreds(arg0: string, arg1: string, arg2: UserDTO): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createUserWithCreds(arg0, arg1, to_candid_UserDTO_n14(this._uploadFile, this._downloadFile, arg2));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createUserWithCreds(arg0, arg1, to_candid_UserDTO_n14(this._uploadFile, this._downloadFile, arg2));
             return result;
         }
     }
