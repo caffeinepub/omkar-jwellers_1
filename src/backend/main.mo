@@ -860,6 +860,40 @@ actor {
     settings := newSettings;
   };
 
+  public query func getUsersWithCreds(phone : Text, password : Text) : async [UserDTO] {
+    ignore validateCredsOwner(phone, password);
+    usersMap.values().toArray().map(func(u) { toUserDTO(u) });
+  };
+
+  public shared func updateUserWithCreds(callerPhone : Text, callerPassword : Text, userDTO : UserDTO) : async () {
+    ignore validateCredsOwner(callerPhone, callerPassword);
+    if (userDTO.phone == "" or userDTO.name == "") { Runtime.trap("Invalid user data") };
+    switch (usersMap.get(userDTO.phone)) {
+      case (null) { Runtime.trap("User not found") };
+      case (?existingUser) {
+        let newPassword = if (userDTO.password == "") { existingUser.password } else { userDTO.password };
+        usersMap.remove(userDTO.phone);
+        usersMap.add(userDTO.phone, { existingUser with name = userDTO.name; password = newPassword; role = userDTO.role });
+      };
+    };
+  };
+
+  public shared func deleteUserWithCreds(callerPhone : Text, callerPassword : Text, targetPhone : Text) : async () {
+    ignore validateCredsOwner(callerPhone, callerPassword);
+    switch (usersMap.get(targetPhone)) {
+      case (null) { Runtime.trap("User not found") };
+      case (?user) {
+        switch (user.role) {
+          case (#owner) { Runtime.trap("Cannot delete owner account") };
+          case (_) {
+            usersMap.remove(targetPhone);
+          };
+        };
+      };
+    };
+  };
+
+
   public query ({ caller }) func getSettings() : async SettingsDTO {
     requireAuthenticated(caller);
     toSettingsDTO(settings);

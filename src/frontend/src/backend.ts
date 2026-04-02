@@ -360,6 +360,9 @@ export interface backendInterface {
     updateCustomOrderWithCreds(phone: string, password: string, update: CustomOrderUpdateDTO): Promise<void>;
     getCustomOrdersWithCreds(phone: string, password: string): Promise<CustomOrder[]>;
     updateSettingsWithCreds(phone: string, password: string, newSettings: SettingsDTO): Promise<void>;
+    getUsersWithCreds(phone: string, password: string): Promise<UserDTO[]>;
+    updateUserWithCreds(callerPhone: string, callerPassword: string, userDTO: UserDTO): Promise<void>;
+    deleteUserWithCreds(callerPhone: string, callerPassword: string, targetPhone: string): Promise<void>;
     getSettingsPublic(): Promise<SettingsDTO>;
     updateGoldRates(newRates: GoldRatesDTO): Promise<void>;
     updateInvoiceStatus(update: InvoiceUpdateDTO): Promise<void>;
@@ -1230,6 +1233,16 @@ export class Backend implements backendInterface {
     async updateSettingsWithCreds(arg0: string, arg1: string, arg2: SettingsDTO): Promise<void> {
         return this.actor.updateSettingsWithCreds(arg0, arg1, arg2);
     }
+    async getUsersWithCreds(arg0: string, arg1: string): Promise<UserDTO[]> {
+        const result = await this.actor.getUsersWithCreds(arg0, arg1);
+        return from_candid_vec_UserDTO(this._uploadFile, this._downloadFile, result as any);
+    }
+    async updateUserWithCreds(arg0: string, arg1: string, arg2: UserDTO): Promise<void> {
+        return this.actor.updateUserWithCreds(arg0, arg1, to_candid_UserDTO_n14(this._uploadFile, this._downloadFile, arg2));
+    }
+    async deleteUserWithCreds(arg0: string, arg1: string, arg2: string): Promise<void> {
+        return this.actor.deleteUserWithCreds(arg0, arg1, arg2);
+    }
     async getSettingsPublic(): Promise<SettingsDTO> {
         return this.actor.getSettingsPublic();
     }
@@ -1584,6 +1597,9 @@ function from_candid_vec_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 }
 function from_candid_vec_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_RepairOrder>): Array<RepairOrder> {
     return value.map((x)=>from_candid_RepairOrder_n43(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_UserDTO(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_UserDTO>): Array<UserDTO> {
+    return value.map((x)=>from_candid_UserDTO_n46(_uploadFile, _downloadFile, x));
 }
 function to_candid_CustomOrderDTO_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CustomOrderDTO): _CustomOrderDTO {
     return to_candid_record_n11(_uploadFile, _downloadFile, value);

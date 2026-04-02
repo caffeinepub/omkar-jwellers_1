@@ -264,4 +264,7 @@ export interface backendInterface {
     updateCustomOrderWithCreds(phone: string, password: string, update: CustomOrderUpdateDTO): Promise<void>;
     getCustomOrdersWithCreds(phone: string, password: string): Promise<Array<CustomOrder>>;
     updateSettingsWithCreds(phone: string, password: string, newSettings: SettingsDTO): Promise<void>;
+    getUsersWithCreds(phone: string, password: string): Promise<Array<UserDTO>>;
+    updateUserWithCreds(callerPhone: string, callerPassword: string, userDTO: UserDTO): Promise<void>;
+    deleteUserWithCreds(callerPhone: string, callerPassword: string, targetPhone: string): Promise<void>;
 }

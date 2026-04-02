@@ -422,6 +422,51 @@ export function useCreateUser() {
     },
   });
 }
+export function useUsers() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["users"],
+    queryFn: async () => {
+      if (!actor) return [];
+      const creds = getCredsOrNull();
+      if (creds) return actor.getUsersWithCreds(creds.phone, creds.password);
+      return [];
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useUpdateUser() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (user: UserDTO) => {
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.updateUserWithCreds(creds.phone, creds.password, user);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useDeleteUser() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (targetPhone: string) => {
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.deleteUserWithCreds(
+        creds.phone,
+        creds.password,
+        targetPhone,
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
 
 export function useGetUdharByCustomer(
   invoices: Invoice[],
