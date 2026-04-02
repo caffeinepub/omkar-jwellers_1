@@ -1,10 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, Hammer, Sparkles, Wrench } from "lucide-react";
+import {
+  CheckCircle2,
+  Hammer,
+  ImageIcon,
+  Sparkles,
+  Wrench,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLang } from "../App";
-import { Variant_pending_completed_inProgress } from "../backend";
 import type { Variant_delivered_inProgress_received_ready } from "../backend";
 import { useImageUpload } from "../hooks/useImageUpload";
 import {
@@ -24,17 +30,42 @@ function ImagePreview({
   getImageUrl,
 }: { hash: string; getImageUrl: (h: string) => Promise<string> }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   useEffect(() => {
-    getImageUrl(hash).then(setUrl);
+    getImageUrl(hash)
+      .then(setUrl)
+      .catch(() => {});
   }, [hash, getImageUrl]);
-  if (!url) return null;
+  if (!url)
+    return (
+      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center mt-2">
+        <ImageIcon size={20} className="text-muted-foreground" />
+      </div>
+    );
   return (
-    <img
-      src={url}
-      alt="Reference"
-      className="mt-2 rounded-lg w-full max-w-xs object-cover border border-border"
-      style={{ maxHeight: 160 }}
-    />
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="focus:outline-none mt-2"
+      >
+        <img
+          src={url}
+          alt="Reference"
+          className="rounded-lg w-full max-w-xs object-cover border border-border hover:opacity-80 transition-opacity cursor-pointer"
+          style={{ maxHeight: 160 }}
+        />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="bg-card border-border max-w-lg p-2">
+          <img
+            src={url}
+            alt="Reference"
+            className="w-full rounded-lg object-contain max-h-[80vh]"
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -54,7 +85,7 @@ export default function CompletedOrdersPage() {
     .sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 
   const completedKaragir = jobOrders
-    .filter((j) => j.status === Variant_pending_completed_inProgress.completed)
+    .filter((j) => Object.keys(j.status)[0] === "completed")
     .sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 
   function formatDate(ts: bigint) {

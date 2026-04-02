@@ -28,7 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useLang } from "../App";
 import type { InvoiceItem } from "../backend";
@@ -37,7 +37,6 @@ import {
   useCreateInvoice,
   useCustomers,
   useGoldRates,
-  useUpdateGoldRates,
 } from "../hooks/useQueries";
 import { t } from "../translations";
 
@@ -68,7 +67,6 @@ export default function BillingPage() {
   const { data: goldRatesData } = useGoldRates();
   const createInvoice = useCreateInvoice();
   const addCustomer = useAddCustomer();
-  const updateGoldRates = useUpdateGoldRates();
 
   const goldRates = goldRatesData ?? {
     gold24k: 0,
@@ -90,15 +88,6 @@ export default function BillingPage() {
   const [_generatedInvoiceId, setGeneratedInvoiceId] = useState<string | null>(
     null,
   );
-
-  // Gold rate editing
-  const [editingRates, setEditingRates] = useState(false);
-  const [rateInputs, setRateInputs] = useState({
-    gold24k: "",
-    gold22k: "",
-    gold18k: "",
-    silver: "",
-  });
 
   // Add item modal
   const [addItemOpen, setAddItemOpen] = useState(false);
@@ -234,26 +223,6 @@ export default function BillingPage() {
     cancelEdit();
   }
 
-  function deleteItem(tempId: string) {
-    setItems((prev) => prev.filter((it) => it.tempId !== tempId));
-  }
-
-  const handleUpdateGoldRates = useCallback(async () => {
-    const rates = {
-      gold24k: Number.parseFloat(rateInputs.gold24k) || goldRates.gold24k,
-      gold22k: Number.parseFloat(rateInputs.gold22k) || goldRates.gold22k,
-      gold18k: Number.parseFloat(rateInputs.gold18k) || goldRates.gold18k,
-      silver: Number.parseFloat(rateInputs.silver) || goldRates.silver,
-    };
-    try {
-      await updateGoldRates.mutateAsync(rates);
-      setEditingRates(false);
-      toast.success(lang === "mr" ? "सोन्याचे दर अपडेट केले" : "Gold rates updated");
-    } catch {
-      toast.error(lang === "mr" ? "काहीतरी चुकले" : "Failed to update rates");
-    }
-  }, [rateInputs, goldRates, updateGoldRates, lang]);
-
   async function handleAddCustomer() {
     if (!newCust.name || !newCust.phone) {
       toast.error(
@@ -357,167 +326,71 @@ export default function BillingPage() {
         {t(lang, "newInvoice")}
       </h1>
 
-      {/* Customer + Gold Rates row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Customer */}
-        <div className="space-y-1.5">
-          <Label>{t(lang, "selectCustomer")}</Label>
-          <div className="relative">
-            <button
-              data-ocid="billing.select"
-              type="button"
-              onClick={() => setCustDropOpen((v) => !v)}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-md border border-border bg-input text-sm hover:border-primary/50 transition-colors"
+      {/* Customer selector */}
+      <div className="space-y-1.5">
+        <Label>{t(lang, "selectCustomer")}</Label>
+        <div className="relative">
+          <button
+            data-ocid="billing.select"
+            type="button"
+            onClick={() => setCustDropOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-md border border-border bg-input text-sm hover:border-primary/50 transition-colors"
+          >
+            <span
+              className={
+                selectedCustomer ? "text-foreground" : "text-muted-foreground"
+              }
             >
-              <span
-                className={
-                  selectedCustomer ? "text-foreground" : "text-muted-foreground"
-                }
-              >
-                {selectedCustomer
-                  ? `${selectedCustomer.name} (${selectedCustomer.phone})`
-                  : t(lang, "selectCustomer")}
-              </span>
-              <ChevronDown size={16} className="text-muted-foreground" />
-            </button>
-            {custDropOpen && (
-              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
-                <div className="p-2">
-                  <Input
-                    placeholder={t(lang, "searchCustomer")}
-                    value={custSearch}
-                    onChange={(e) => setCustSearch(e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="max-h-48 overflow-y-auto">
+              {selectedCustomer
+                ? `${selectedCustomer.name} (${selectedCustomer.phone})`
+                : t(lang, "selectCustomer")}
+            </span>
+            <ChevronDown size={16} className="text-muted-foreground" />
+          </button>
+          {custDropOpen && (
+            <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+              <div className="p-2">
+                <Input
+                  placeholder={t(lang, "searchCustomer")}
+                  value={custSearch}
+                  onChange={(e) => setCustSearch(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddCustOpen(true);
+                    setCustDropOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2.5 text-sm text-primary hover:bg-muted/30 font-medium"
+                >
+                  {t(lang, "addNewCustomer")}
+                </button>
+                {filteredCustomers.map((c) => (
                   <button
                     type="button"
+                    key={c.phone}
                     onClick={() => {
-                      setAddCustOpen(true);
+                      setSelectedCustomerId(c.phone);
                       setCustDropOpen(false);
+                      setCustSearch("");
                     }}
-                    className="w-full text-left px-3 py-2.5 text-sm text-primary hover:bg-muted/30 font-medium"
+                    className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted/30 transition-colors"
                   >
-                    {t(lang, "addNewCustomer")}
+                    <span className="font-medium">{c.name}</span>
+                    <span className="text-muted-foreground ml-2">
+                      {c.phone}
+                    </span>
                   </button>
-                  {filteredCustomers.map((c) => (
-                    <button
-                      type="button"
-                      key={c.phone}
-                      onClick={() => {
-                        setSelectedCustomerId(c.phone);
-                        setCustDropOpen(false);
-                        setCustSearch("");
-                      }}
-                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted/30 transition-colors"
-                    >
-                      <span className="font-medium">{c.name}</span>
-                      <span className="text-muted-foreground ml-2">
-                        {c.phone}
-                      </span>
-                    </button>
-                  ))}
-                  {filteredCustomers.length === 0 && (
-                    <p className="px-3 py-3 text-sm text-muted-foreground">
-                      {t(lang, "noCustomers")}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Gold Rates Panel */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label>
-              {lang === "mr"
-                ? "सोने/चांदी दर (₹/ग्रॅम)"
-                : "Gold/Silver Rates (₹/g)"}
-            </Label>
-            {!editingRates && (
-              <Button
-                data-ocid="billing.edit_button"
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs text-primary px-2"
-                onClick={() => {
-                  setRateInputs({
-                    gold24k: String(goldRates.gold24k || ""),
-                    gold22k: String(goldRates.gold22k || ""),
-                    gold18k: String(goldRates.gold18k || ""),
-                    silver: String(goldRates.silver || ""),
-                  });
-                  setEditingRates(true);
-                }}
-              >
-                {t(lang, "editRate")}
-              </Button>
-            )}
-          </div>
-          {editingRates ? (
-            <div className="bg-card border border-border rounded-lg p-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                {PURITY_OPTIONS.map((p) => (
-                  <div key={p.key} className="space-y-1">
-                    <Label className="text-xs">{p.label}</Label>
-                    <Input
-                      type="number"
-                      value={rateInputs[p.key as keyof typeof rateInputs]}
-                      onChange={(e) =>
-                        setRateInputs((prev) => ({
-                          ...prev,
-                          [p.key]: e.target.value,
-                        }))
-                      }
-                      placeholder="₹/g"
-                      className="h-8 bg-input text-sm"
-                    />
-                  </div>
                 ))}
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button
-                  size="sm"
-                  onClick={handleUpdateGoldRates}
-                  disabled={updateGoldRates.isPending}
-                  className="gold-gradient text-primary-foreground flex-1"
-                >
-                  {updateGoldRates.isPending ? (
-                    <Loader2 size={14} className="animate-spin mr-1" />
-                  ) : (
-                    <Check size={14} className="mr-1" />
-                  )}
-                  {lang === "mr" ? "जतन करा" : "Save Rates"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setEditingRates(false)}
-                >
-                  <X size={14} />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-4 gap-2">
-              {PURITY_OPTIONS.map((p) => (
-                <div
-                  key={p.key}
-                  className="bg-card border border-border rounded-md px-2 py-1.5 text-center"
-                >
-                  <p className="text-xs text-muted-foreground">{p.label}</p>
-                  <p className="text-sm font-bold text-primary">
-                    {goldRates[p.key as keyof typeof goldRates] > 0 ? (
-                      `₹${Number(goldRates[p.key as keyof typeof goldRates]).toLocaleString("en-IN")}`
-                    ) : (
-                      <span className="text-muted-foreground text-xs">--</span>
-                    )}
+                {filteredCustomers.length === 0 && (
+                  <p className="px-3 py-3 text-sm text-muted-foreground">
+                    {t(lang, "noCustomers")}
                   </p>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -1084,4 +957,8 @@ export default function BillingPage() {
       </Dialog>
     </div>
   );
+
+  function deleteItem(tempId: string) {
+    setItems((prev) => prev.filter((it) => it.tempId !== tempId));
+  }
 }

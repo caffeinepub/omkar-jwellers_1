@@ -75,6 +75,7 @@ function ImagePreview({
   getImageUrl,
 }: { hash: string; getImageUrl: (h: string) => Promise<string> }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     getImageUrl(hash)
       .then(setUrl)
@@ -87,13 +88,28 @@ function ImagePreview({
       </div>
     );
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer">
-      <img
-        src={url}
-        alt="Reference"
-        className="w-20 h-20 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity"
-      />
-    </a>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="focus:outline-none"
+      >
+        <img
+          src={url}
+          alt="Reference"
+          className="w-20 h-20 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity cursor-pointer"
+        />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="bg-card border-border max-w-lg p-2">
+          <img
+            src={url}
+            alt="Reference"
+            className="w-full rounded-lg object-contain max-h-[80vh]"
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
