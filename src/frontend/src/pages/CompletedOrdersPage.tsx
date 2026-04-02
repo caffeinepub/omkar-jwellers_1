@@ -22,7 +22,8 @@ import {
 function getStatusKey(
   status: Variant_delivered_inProgress_received_ready,
 ): string {
-  return Object.keys(status)[0] ?? "received";
+  if (typeof status === "string") return status;
+  return Object.keys(status as object)[0] ?? "received";
 }
 
 function ImagePreview({
@@ -85,7 +86,13 @@ export default function CompletedOrdersPage() {
     .sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 
   const completedKaragir = jobOrders
-    .filter((j) => Object.keys(j.status)[0] === "completed")
+    .filter((j) => {
+      const sk =
+        typeof j.status === "string"
+          ? j.status
+          : Object.keys(j.status as object)[0];
+      return sk === "completed";
+    })
     .sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 
   function formatDate(ts: bigint) {

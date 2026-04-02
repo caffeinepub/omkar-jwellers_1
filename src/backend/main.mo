@@ -212,7 +212,6 @@ actor {
   };
 
   // --- Legacy stable vars retained for upgrade compatibility ---
-  // These existed in the previously deployed version and must not be dropped.
   stable var goldRate : GoldRate = { ratePerGram = 0.0; updatedAt = 0 };
   let userProfiles = Map.empty<Principal, UserProfile>();
 
@@ -227,7 +226,7 @@ actor {
   stable var stableInvoiceCounter : Nat = 0;
   stable var stableGoldRates : GoldRates = { gold24k = 0.0; gold22k = 0.0; gold18k = 0.0; silver = 0.0; updatedAt = 0 };
   stable var stableSettings : Settings = {
-    shopName = "ओₘकार ज्वेलर्स";
+    shopName = "\u{0949}\u{0902}\u{0915}\u{093E}\u{0930} \u{091C}\u{094D}\u{0935}\u{0947}\u{0932}\u{0930}\u{094D}\u{0938}";
     address = "";
     phone = "";
     gstNumber = "";
@@ -263,7 +262,6 @@ actor {
   restoreState();
 
   // Always force-write the owner account to guarantee login always works.
-  // Using remove+add prevents duplicate key traps and overrides stale stable entries.
   func initOwnerAccount() {
     let owner : User = {
       phone = "8263062604";
@@ -288,7 +286,6 @@ actor {
     stableInvoiceCounter := invoiceCounter;
     stableGoldRates := goldRates;
     stableSettings := settings;
-    // Migrate legacy goldRate from previous deployment if 22k rate not yet set
     if (stableGoldRates.gold22k == 0.0 and goldRate.ratePerGram > 0.0) {
       stableGoldRates := { stableGoldRates with gold22k = goldRate.ratePerGram };
     };
@@ -372,6 +369,38 @@ actor {
     };
   };
 
+  // --- CREDENTIAL VALIDATION HELPER ---
+  // Used by all *WithCreds functions. Validates phone+password and returns the User.
+  func validateCreds(phone : Text, password : Text) : User {
+    if (phone == "" or password == "") { Runtime.trap("Invalid credentials") };
+    switch (usersMap.get(phone)) {
+      case (null) { Runtime.trap("Unauthorized: User not found") };
+      case (?user) {
+        if (user.password != password) { Runtime.trap("Unauthorized: Invalid password") };
+        user;
+      };
+    };
+  };
+
+  func validateCredsOwnerOrManager(phone : Text, password : Text) : User {
+    let user = validateCreds(phone, password);
+    switch (user.role) {
+      case (#owner) {};
+      case (#manager) {};
+      case (_) { Runtime.trap("Unauthorized: Only owners or managers can perform this action") };
+    };
+    user;
+  };
+
+  func validateCredsOwner(phone : Text, password : Text) : User {
+    let user = validateCreds(phone, password);
+    switch (user.role) {
+      case (#owner) {};
+      case (_) { Runtime.trap("Unauthorized: Only owners can perform this action") };
+    };
+    user;
+  };
+
   // AUTH
 
   public shared ({ caller }) func login(phone : Text, password : Text) : async UserDTO {
@@ -387,8 +416,21 @@ actor {
     };
   };
 
+  // Credential-based login — returns user info, no session needed
+  public shared func loginWithCreds(phone : Text, password : Text) : async UserDTO {
+    let user = validateCreds(phone, password);
+    toUserDTO(user);
+  };
+
   public shared ({ caller }) func createUser(userDTO : UserDTO) : async () {
     requireOwner(caller);
+    if (userDTO.phone == "" or userDTO.password == "" or userDTO.name == "") { Runtime.trap("Invalid user data") };
+    if (usersMap.get(userDTO.phone) != null) { Runtime.trap("User already exists") };
+    usersMap.add(userDTO.phone, { phone = userDTO.phone; password = userDTO.password; role = userDTO.role; name = userDTO.name });
+  };
+
+  public shared func createUserWithCreds(callerPhone : Text, callerPassword : Text, userDTO : UserDTO) : async () {
+    ignore validateCredsOwner(callerPhone, callerPassword);
     if (userDTO.phone == "" or userDTO.password == "" or userDTO.name == "") { Runtime.trap("Invalid user data") };
     if (usersMap.get(userDTO.phone) != null) { Runtime.trap("User already exists") };
     usersMap.add(userDTO.phone, { phone = userDTO.phone; password = userDTO.password; role = userDTO.role; name = userDTO.name });
@@ -421,10 +463,23 @@ actor {
     };
   };
 
+  // Get user profile with credentials (no session needed)
+  public query func getUserProfileWithCreds(phone : Text, password : Text) : async UserProfile {
+    let user = validateCreds(phone, password);
+    toUserProfile(user);
+  };
+
   // CUSTOMERS
 
   public shared ({ caller }) func addCustomer(customer : CustomerDTO) : async Text {
     requireAuthenticated(caller);
+    customersMap.remove(customer.phone);
+    customersMap.add(customer.phone, { customer with createdAt = Time.now() });
+    customer.phone;
+  };
+
+  public shared func addCustomerWithCreds(phone : Text, password : Text, customer : CustomerDTO) : async Text {
+    ignore validateCreds(phone, password);
     customersMap.remove(customer.phone);
     customersMap.add(customer.phone, { customer with createdAt = Time.now() });
     customer.phone;
@@ -435,12 +490,22 @@ actor {
     customersMap.values().toArray().map(func(c) { toCustomerDTO(c) });
   };
 
+  public query func getCustomersWithCreds(phone : Text, password : Text) : async [CustomerDTO] {
+    ignore validateCreds(phone, password);
+    customersMap.values().toArray().map(func(c) { toCustomerDTO(c) });
+  };
+
   public query ({ caller }) func getCustomer(phone : Text) : async ?Customer {
     requireAuthenticated(caller);
     customersMap.get(phone);
   };
 
-  // GOLD RATES (multi-rate)
+  public query func getCustomerWithCreds(callerPhone : Text, password : Text, customerPhone : Text) : async ?Customer {
+    ignore validateCreds(callerPhone, password);
+    customersMap.get(customerPhone);
+  };
+
+  // GOLD RATES
 
   public shared ({ caller }) func updateGoldRates(newRates : GoldRatesDTO) : async () {
     requireOwnerOrManager(caller);
@@ -452,6 +517,11 @@ actor {
     { gold24k = goldRates.gold24k; gold22k = goldRates.gold22k; gold18k = goldRates.gold18k; silver = goldRates.silver };
   };
 
+  public shared func updateGoldRatesWithCreds(phone : Text, password : Text, newRates : GoldRatesDTO) : async () {
+    ignore validateCredsOwnerOrManager(phone, password);
+    goldRates := { gold24k = newRates.gold24k; gold22k = newRates.gold22k; gold18k = newRates.gold18k; silver = newRates.silver; updatedAt = Time.now() };
+  };
+
   // Keep old single-rate endpoints for backward compatibility
   public shared ({ caller }) func updateGoldRate(newRate : { ratePerGram : Float }) : async () {
     requireOwnerOrManager(caller);
@@ -461,6 +531,10 @@ actor {
   public query ({ caller }) func getGoldRate() : async { ratePerGram : Float } {
     requireAuthenticated(caller);
     { ratePerGram = goldRates.gold22k };
+  };
+
+  public query func getGoldRatesPublic() : async GoldRatesDTO {
+    { gold24k = goldRates.gold24k; gold22k = goldRates.gold22k; gold18k = goldRates.gold18k; silver = goldRates.silver };
   };
 
   // INVOICES
@@ -480,8 +554,29 @@ actor {
     id;
   };
 
+  public shared func createInvoiceWithCreds(phone : Text, password : Text, invoice : InvoiceDTO) : async Text {
+    ignore validateCreds(phone, password);
+    let id = getNextInvoiceId();
+    let totalAmount = calculateTotalAmount(invoice.items, invoice.gst, invoice.gstPercent);
+    let amountPaid = invoice.partialPayment;
+    let udhar = totalAmount - amountPaid;
+    invoicesMap.add(id, { invoice with id; createdAt = Time.now(); updatedAt = Time.now(); status = if (amountPaid >= totalAmount) { #paid } else if (amountPaid > 0.0) { #partial } else { #draft }; totalAmount; amountPaid; udhar });
+    id;
+  };
+
   public shared ({ caller }) func lockInvoice(id : Text) : async () {
     requireAuthenticated(caller);
+    switch (invoicesMap.get(id)) {
+      case (null) { Runtime.trap("Invoice not found") };
+      case (?invoice) {
+        invoicesMap.remove(id);
+        invoicesMap.add(id, { invoice with status = #locked; updatedAt = Time.now() });
+      };
+    };
+  };
+
+  public shared func lockInvoiceWithCreds(phone : Text, password : Text, id : Text) : async () {
+    ignore validateCreds(phone, password);
     switch (invoicesMap.get(id)) {
       case (null) { Runtime.trap("Invoice not found") };
       case (?invoice) {
@@ -502,6 +597,17 @@ actor {
     };
   };
 
+  public shared func updateInvoiceStatusWithCreds(phone : Text, password : Text, update : InvoiceUpdateDTO) : async () {
+    ignore validateCreds(phone, password);
+    switch (invoicesMap.get(update.id)) {
+      case (null) { Runtime.trap("Invoice not found") };
+      case (?invoice) {
+        invoicesMap.remove(update.id);
+        invoicesMap.add(update.id, { invoice with status = update.status; updatedAt = Time.now() });
+      };
+    };
+  };
+
   public query func getInvoice(id : Text) : async ?Invoice {
     invoicesMap.get(id);
   };
@@ -511,8 +617,18 @@ actor {
     invoicesMap.values().toArray();
   };
 
+  public query func getInvoicesWithCreds(phone : Text, password : Text) : async [Invoice] {
+    ignore validateCreds(phone, password);
+    invoicesMap.values().toArray();
+  };
+
   public query ({ caller }) func getInvoicesByCustomer(customerId : Text) : async [Invoice] {
     requireAuthenticated(caller);
+    invoicesMap.values().toArray().filter(func(inv) { inv.customerId == customerId });
+  };
+
+  public query func getInvoicesByCustomerWithCreds(phone : Text, password : Text, customerId : Text) : async [Invoice] {
+    ignore validateCreds(phone, password);
     invoicesMap.values().toArray().filter(func(inv) { inv.customerId == customerId });
   };
 
@@ -543,13 +659,63 @@ actor {
     };
   };
 
+  public shared func receivePaymentWithCreds(phone : Text, password : Text, invoiceId : Text, amount : Float) : async () {
+    ignore validateCreds(phone, password);
+    if (amount <= 0.0) { Runtime.trap("Invalid payment amount") };
+    switch (invoicesMap.get(invoiceId)) {
+      case (null) { Runtime.trap("Invoice not found") };
+      case (?invoice) {
+        let newAmountPaid = invoice.amountPaid + amount;
+        let newUdhar = invoice.totalAmount - newAmountPaid;
+        let newStatus = if (newUdhar <= 0.0) { #paid } else if (newAmountPaid > 0.0) { #partial } else { invoice.status };
+        invoicesMap.remove(invoiceId);
+        invoicesMap.add(invoiceId, { invoice with amountPaid = newAmountPaid; udhar = if (newUdhar < 0.0) { 0.0 } else { newUdhar }; status = newStatus; updatedAt = Time.now() });
+      };
+    };
+  };
+
+  // Add manual udhar (credit entry without a full invoice)
+  public shared func addManualUdharWithCreds(callerPhone : Text, password : Text, customerPhone : Text, amount : Float, notes : Text) : async Text {
+    ignore validateCreds(callerPhone, password);
+    if (amount <= 0.0) { Runtime.trap("Invalid udhar amount") };
+    let id = getNextInvoiceId();
+    let emptyItems : [InvoiceItem] = [];
+    invoicesMap.add(id, {
+      id;
+      customerId = customerPhone;
+      items = emptyItems;
+      gst = false;
+      gstPercent = 0.0;
+      notes;
+      partialPayment = 0.0;
+      language = "marathi";
+      status = #partial;
+      createdAt = Time.now();
+      updatedAt = Time.now();
+      totalAmount = amount;
+      amountPaid = 0.0;
+      udhar = amount;
+    });
+    id;
+  };
+
   public query ({ caller }) func getUdharLedger() : async [Invoice] {
     requireAuthenticated(caller);
     invoicesMap.values().toArray().filter(func(inv) { inv.udhar > 0.0 });
   };
 
+  public query func getUdharLedgerWithCreds(phone : Text, password : Text) : async [Invoice] {
+    ignore validateCreds(phone, password);
+    invoicesMap.values().toArray().filter(func(inv) { inv.udhar > 0.0 });
+  };
+
   public query ({ caller }) func getPaymentHistory(customerId : Text) : async [Invoice] {
     requireAuthenticated(caller);
+    invoicesMap.values().toArray().filter(func(inv) { inv.customerId == customerId and inv.amountPaid > 0.0 });
+  };
+
+  public query func getPaymentHistoryWithCreds(callerPhone : Text, password : Text, customerId : Text) : async [Invoice] {
+    ignore validateCreds(callerPhone, password);
     invoicesMap.values().toArray().filter(func(inv) { inv.customerId == customerId and inv.amountPaid > 0.0 });
   };
 
@@ -560,8 +726,18 @@ actor {
     invoicesMap.values().toArray().foldLeft(0.0, func(acc, inv) { acc + inv.totalAmount });
   };
 
+  public query func getTotalSalesWithCreds(phone : Text, password : Text) : async Float {
+    ignore validateCreds(phone, password);
+    invoicesMap.values().toArray().foldLeft(0.0, func(acc, inv) { acc + inv.totalAmount });
+  };
+
   public query ({ caller }) func getTotalUdharPending() : async Float {
     requireAuthenticated(caller);
+    invoicesMap.values().toArray().foldLeft(0.0, func(acc, inv) { acc + inv.udhar });
+  };
+
+  public query func getTotalUdharPendingWithCreds(phone : Text, password : Text) : async Float {
+    ignore validateCreds(phone, password);
     invoicesMap.values().toArray().foldLeft(0.0, func(acc, inv) { acc + inv.udhar });
   };
 
@@ -572,10 +748,24 @@ actor {
     { paid = paidCount; unpaid = all.size() - paidCount; total = all.size() };
   };
 
+  public query func getInvoiceCountsWithCreds(phone : Text, password : Text) : async { paid : Nat; unpaid : Nat; total : Nat } {
+    ignore validateCreds(phone, password);
+    let all = invoicesMap.values().toArray();
+    let paidCount = all.filter(func(inv) { switch (inv.status) { case (#paid) { true }; case (_) { false } } }).size();
+    { paid = paidCount; unpaid = all.size() - paidCount; total = all.size() };
+  };
+
   // KARAGIR JOB ORDERS
 
   public shared ({ caller }) func createJobOrder(job : JobOrderDTO) : async Text {
     requireAuthenticated(caller);
+    let id = (Time.now() / 1_000_000_000).toText();
+    jobOrdersMap.add(id, { job with id; status = #pending; notes = ""; createdAt = Time.now(); updatedAt = Time.now() });
+    id;
+  };
+
+  public shared func createJobOrderWithCreds(phone : Text, password : Text, job : JobOrderDTO) : async Text {
+    ignore validateCreds(phone, password);
     let id = (Time.now() / 1_000_000_000).toText();
     jobOrdersMap.add(id, { job with id; status = #pending; notes = ""; createdAt = Time.now(); updatedAt = Time.now() });
     id;
@@ -600,6 +790,25 @@ actor {
     };
   };
 
+  public shared func updateJobOrderWithCreds(phone : Text, password : Text, update : JobOrderUpdateDTO) : async () {
+    let user = validateCreds(phone, password);
+    switch (jobOrdersMap.get(update.id)) {
+      case (null) { Runtime.trap("Job order not found") };
+      case (?job) {
+        switch (user.role) {
+          case (#karagir) {
+            if (job.assignedKaragir != user.phone) {
+              Runtime.trap("Unauthorized: Karagir can only update their own assigned jobs");
+            };
+          };
+          case (_) {};
+        };
+        jobOrdersMap.remove(update.id);
+        jobOrdersMap.add(update.id, { job with status = update.status; notes = update.notes; updatedAt = Time.now() });
+      };
+    };
+  };
+
   public query ({ caller }) func getJobOrders() : async [JobOrder] {
     requireAuthenticated(caller);
     if (isKaragir(caller)) {
@@ -609,6 +818,18 @@ actor {
       };
     } else {
       jobOrdersMap.values().toArray();
+    };
+  };
+
+  public query func getJobOrdersWithCreds(phone : Text, password : Text) : async [JobOrder] {
+    let user = validateCreds(phone, password);
+    switch (user.role) {
+      case (#karagir) {
+        jobOrdersMap.values().toArray().filter(func(job) { job.assignedKaragir == user.phone });
+      };
+      case (_) {
+        jobOrdersMap.values().toArray();
+      };
     };
   };
 
@@ -634,8 +855,17 @@ actor {
     settings := newSettings;
   };
 
+  public shared func updateSettingsWithCreds(phone : Text, password : Text, newSettings : SettingsDTO) : async () {
+    ignore validateCredsOwner(phone, password);
+    settings := newSettings;
+  };
+
   public query ({ caller }) func getSettings() : async SettingsDTO {
     requireAuthenticated(caller);
+    toSettingsDTO(settings);
+  };
+
+  public query func getSettingsPublic() : async SettingsDTO {
     toSettingsDTO(settings);
   };
 
@@ -643,6 +873,13 @@ actor {
 
   public shared ({ caller }) func createRepairOrder(repairOrder : RepairOrderDTO) : async Text {
     requireAuthenticated(caller);
+    let id = "RO-" # (Time.now() / 1_000_000_000).toText();
+    repairOrdersMap.add(id, { repairOrder with id; status = #received; createdAt = Time.now(); updatedAt = Time.now() });
+    id;
+  };
+
+  public shared func createRepairOrderWithCreds(phone : Text, password : Text, repairOrder : RepairOrderDTO) : async Text {
+    ignore validateCreds(phone, password);
     let id = "RO-" # (Time.now() / 1_000_000_000).toText();
     repairOrdersMap.add(id, { repairOrder with id; status = #received; createdAt = Time.now(); updatedAt = Time.now() });
     id;
@@ -659,8 +896,24 @@ actor {
     };
   };
 
+  public shared func updateRepairOrderWithCreds(phone : Text, password : Text, update : RepairOrderUpdateDTO) : async () {
+    ignore validateCreds(phone, password);
+    switch (repairOrdersMap.get(update.id)) {
+      case (null) { Runtime.trap("Repair order not found") };
+      case (?order) {
+        repairOrdersMap.remove(update.id);
+        repairOrdersMap.add(update.id, { order with status = update.status; notes = update.notes; updatedAt = Time.now() });
+      };
+    };
+  };
+
   public query ({ caller }) func getRepairOrders() : async [RepairOrder] {
     requireAuthenticated(caller);
+    repairOrdersMap.values().toArray();
+  };
+
+  public query func getRepairOrdersWithCreds(phone : Text, password : Text) : async [RepairOrder] {
+    ignore validateCreds(phone, password);
     repairOrdersMap.values().toArray();
   };
 
@@ -678,8 +931,26 @@ actor {
     id;
   };
 
+  public shared func createCustomOrderWithCreds(phone : Text, password : Text, customOrder : CustomOrderDTO) : async Text {
+    ignore validateCreds(phone, password);
+    let id = "CO-" # (Time.now() / 1_000_000_000).toText();
+    customOrdersMap.add(id, { customOrder with id; status = #received; createdAt = Time.now(); updatedAt = Time.now() });
+    id;
+  };
+
   public shared ({ caller }) func updateCustomOrder(update : CustomOrderUpdateDTO) : async () {
     requireAuthenticated(caller);
+    switch (customOrdersMap.get(update.id)) {
+      case (null) { Runtime.trap("Custom order not found") };
+      case (?order) {
+        customOrdersMap.remove(update.id);
+        customOrdersMap.add(update.id, { order with status = update.status; designNotes = update.designNotes; updatedAt = Time.now() });
+      };
+    };
+  };
+
+  public shared func updateCustomOrderWithCreds(phone : Text, password : Text, update : CustomOrderUpdateDTO) : async () {
+    ignore validateCreds(phone, password);
     switch (customOrdersMap.get(update.id)) {
       case (null) { Runtime.trap("Custom order not found") };
       case (?order) {
@@ -694,53 +965,14 @@ actor {
     customOrdersMap.values().toArray();
   };
 
+  public query func getCustomOrdersWithCreds(phone : Text, password : Text) : async [CustomOrder] {
+    ignore validateCreds(phone, password);
+    customOrdersMap.values().toArray();
+  };
+
   public query ({ caller }) func getCustomOrder(id : Text) : async ?CustomOrder {
     requireAuthenticated(caller);
     customOrdersMap.get(id);
-  };
-
-  // CREDENTIAL-BASED AUTH HELPERS (bypass session state - fixes post-deployment auth issues)
-
-  func validateUserCreds(phone : Text, password : Text) : User {
-    switch (usersMap.get(phone)) {
-      case (null) { Runtime.trap("Unauthorized: User not found") };
-      case (?user) {
-        if (user.password != password) { Runtime.trap("Unauthorized: Invalid credentials") };
-        user;
-      };
-    };
-  };
-
-  public shared func addCustomerWithCreds(phone : Text, password : Text, customer : CustomerDTO) : async Text {
-    ignore validateUserCreds(phone, password);
-    customersMap.remove(customer.phone);
-    customersMap.add(customer.phone, { customer with createdAt = Time.now() });
-    customer.phone;
-  };
-
-  public shared func updateGoldRatesWithCreds(phone : Text, password : Text, newRates : GoldRatesDTO) : async () {
-    let user = validateUserCreds(phone, password);
-    switch (user.role) {
-      case (#owner) {};
-      case (#manager) {};
-      case (_) { Runtime.trap("Unauthorized: Only owners or managers can update rates") };
-    };
-    goldRates := { gold24k = newRates.gold24k; gold22k = newRates.gold22k; gold18k = newRates.gold18k; silver = newRates.silver; updatedAt = Time.now() };
-  };
-
-  public shared func createUserWithCreds(callerPhone : Text, callerPassword : Text, userDTO : UserDTO) : async () {
-    let caller = validateUserCreds(callerPhone, callerPassword);
-    switch (caller.role) {
-      case (#owner) {};
-      case (_) { Runtime.trap("Unauthorized: Only owners can create users") };
-    };
-    if (userDTO.phone == "" or userDTO.password == "" or userDTO.name == "") { Runtime.trap("Invalid user data") };
-    if (usersMap.get(userDTO.phone) != null) { Runtime.trap("User already exists") };
-    usersMap.add(userDTO.phone, { phone = userDTO.phone; password = userDTO.password; role = userDTO.role; name = userDTO.name });
-  };
-
-  public query func getGoldRatesPublic() : async GoldRatesDTO {
-    { gold24k = goldRates.gold24k; gold22k = goldRates.gold22k; gold18k = goldRates.gold18k; silver = goldRates.silver };
   };
 
 };

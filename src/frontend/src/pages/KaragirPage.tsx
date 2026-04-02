@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useAuth, useLang } from "../App";
 import { Variant_pending_completed_inProgress } from "../backend";
 import {
+  extractErrorMessage,
   useCreateJobOrder,
   useJobOrders,
   useUpdateJobOrder,
@@ -90,8 +91,8 @@ export default function KaragirPage() {
         assignedKaragir: "",
         dueDate: "",
       });
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 
@@ -105,8 +106,8 @@ export default function KaragirPage() {
       });
       toast.success(lang === "mr" ? "अपडेट केले" : "Updated successfully");
       setUpdateOpen(false);
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 

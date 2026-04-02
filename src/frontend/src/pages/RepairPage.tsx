@@ -33,6 +33,7 @@ import { useLang } from "../App";
 import type { Variant_delivered_inProgress_received_ready } from "../backend";
 import { useImageUpload } from "../hooks/useImageUpload";
 import {
+  extractErrorMessage,
   useCreateRepairOrder,
   useRepairOrders,
   useUpdateRepairOrder,
@@ -66,7 +67,9 @@ const STATUS_LABELS: Record<string, { en: string; mr: string; color: string }> =
 function getStatusKey(
   status: Variant_delivered_inProgress_received_ready,
 ): string {
-  return Object.keys(status)[0] ?? "received";
+  // status is already a string enum value after Candid conversion
+  if (typeof status === "string") return status;
+  return Object.keys(status as object)[0] ?? "received";
 }
 
 function ImagePreview({
@@ -193,40 +196,24 @@ export default function RepairPage() {
         notes: "",
       });
       clearImage();
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 
   async function handleUpdate() {
     if (!selectedId) return;
-    const statusMap: Record<
-      string,
-      Variant_delivered_inProgress_received_ready
-    > = {
-      received: {
-        received: null,
-      } as unknown as Variant_delivered_inProgress_received_ready,
-      inProgress: {
-        inProgress: null,
-      } as unknown as Variant_delivered_inProgress_received_ready,
-      ready: {
-        ready: null,
-      } as unknown as Variant_delivered_inProgress_received_ready,
-      delivered: {
-        delivered: null,
-      } as unknown as Variant_delivered_inProgress_received_ready,
-    };
     try {
       await updateOrder.mutateAsync({
         id: selectedId,
-        status: statusMap[updateState.status],
+        status:
+          updateState.status as unknown as Variant_delivered_inProgress_received_ready,
         notes: updateState.notes,
       });
       toast.success(lang === "mr" ? "अपडेट झाले" : "Updated successfully");
       setUpdateOpen(false);
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 

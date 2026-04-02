@@ -187,6 +187,7 @@ export enum Variant_pending_completed_inProgress {
     inProgress = "inProgress"
 }
 export interface backendInterface {
+    // Session-based (kept for compatibility)
     addCustomer(customer: CustomerDTO): Promise<string>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createCustomOrder(customOrder: CustomOrderDTO): Promise<string>;
@@ -203,11 +204,7 @@ export interface backendInterface {
     getGoldRate(): Promise<GoldRateDTO>;
     getGoldRates(): Promise<GoldRatesDTO>;
     getInvoice(id: string): Promise<Invoice | null>;
-    getInvoiceCounts(): Promise<{
-        total: bigint;
-        paid: bigint;
-        unpaid: bigint;
-    }>;
+    getInvoiceCounts(): Promise<{ total: bigint; paid: bigint; unpaid: bigint }>;
     getInvoices(): Promise<Array<Invoice>>;
     getInvoicesByCustomer(customerId: string): Promise<Array<Invoice>>;
     getJobOrder(id: string): Promise<JobOrder | null>;
@@ -229,12 +226,42 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateCustomOrder(update: CustomOrderUpdateDTO): Promise<void>;
     updateGoldRate(newRate: GoldRateDTO): Promise<void>;
-    addCustomerWithCreds(phone: string, password: string, customer: CustomerDTO): Promise<string>;
-    updateGoldRatesWithCreds(phone: string, password: string, newRates: GoldRatesDTO): Promise<void>;
-    getGoldRatesPublic(): Promise<GoldRatesDTO>;
     updateGoldRates(newRates: GoldRatesDTO): Promise<void>;
     updateInvoiceStatus(update: InvoiceUpdateDTO): Promise<void>;
     updateJobOrder(update: JobOrderUpdateDTO): Promise<void>;
     updateRepairOrder(update: RepairOrderUpdateDTO): Promise<void>;
     updateSettings(newSettings: SettingsDTO): Promise<void>;
+    // Public (no auth)
+    getGoldRatesPublic(): Promise<GoldRatesDTO>;
+    getSettingsPublic(): Promise<SettingsDTO>;
+    // Credential-based (bypasses session state -- use these for all mutations)
+    loginWithCreds(phone: string, password: string): Promise<UserDTO>;
+    addCustomerWithCreds(phone: string, password: string, customer: CustomerDTO): Promise<string>;
+    getCustomersWithCreds(phone: string, password: string): Promise<Array<CustomerDTO>>;
+    getCustomerWithCreds(callerPhone: string, password: string, customerPhone: string): Promise<Customer | null>;
+    getUserProfileWithCreds(phone: string, password: string): Promise<UserProfile>;
+    createUserWithCreds(callerPhone: string, callerPassword: string, userDTO: UserDTO): Promise<void>;
+    updateGoldRatesWithCreds(phone: string, password: string, newRates: GoldRatesDTO): Promise<void>;
+    createInvoiceWithCreds(phone: string, password: string, invoice: InvoiceDTO): Promise<string>;
+    lockInvoiceWithCreds(phone: string, password: string, id: string): Promise<void>;
+    updateInvoiceStatusWithCreds(phone: string, password: string, update: InvoiceUpdateDTO): Promise<void>;
+    getInvoicesWithCreds(phone: string, password: string): Promise<Array<Invoice>>;
+    getInvoicesByCustomerWithCreds(phone: string, password: string, customerId: string): Promise<Array<Invoice>>;
+    receivePaymentWithCreds(phone: string, password: string, invoiceId: string, amount: number): Promise<void>;
+    addManualUdharWithCreds(callerPhone: string, password: string, customerPhone: string, amount: number, notes: string): Promise<string>;
+    getUdharLedgerWithCreds(phone: string, password: string): Promise<Array<Invoice>>;
+    getPaymentHistoryWithCreds(callerPhone: string, password: string, customerId: string): Promise<Array<Invoice>>;
+    getTotalSalesWithCreds(phone: string, password: string): Promise<number>;
+    getTotalUdharPendingWithCreds(phone: string, password: string): Promise<number>;
+    getInvoiceCountsWithCreds(phone: string, password: string): Promise<{ total: bigint; paid: bigint; unpaid: bigint }>;
+    createJobOrderWithCreds(phone: string, password: string, job: JobOrderDTO): Promise<string>;
+    updateJobOrderWithCreds(phone: string, password: string, update: JobOrderUpdateDTO): Promise<void>;
+    getJobOrdersWithCreds(phone: string, password: string): Promise<Array<JobOrder>>;
+    createRepairOrderWithCreds(phone: string, password: string, repairOrder: RepairOrderDTO): Promise<string>;
+    updateRepairOrderWithCreds(phone: string, password: string, update: RepairOrderUpdateDTO): Promise<void>;
+    getRepairOrdersWithCreds(phone: string, password: string): Promise<Array<RepairOrder>>;
+    createCustomOrderWithCreds(phone: string, password: string, customOrder: CustomOrderDTO): Promise<string>;
+    updateCustomOrderWithCreds(phone: string, password: string, update: CustomOrderUpdateDTO): Promise<void>;
+    getCustomOrdersWithCreds(phone: string, password: string): Promise<Array<CustomOrder>>;
+    updateSettingsWithCreds(phone: string, password: string, newSettings: SettingsDTO): Promise<void>;
 }

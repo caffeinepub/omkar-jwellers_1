@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useLang } from "../App";
 import { Variant_paid_locked_draft_partial } from "../backend";
 import {
+  extractErrorMessage,
   useAddCustomer,
   useCustomers,
   useInvoicesByCustomer,
@@ -109,7 +110,11 @@ function CustomerHistoryPanel({
 
 export default function CustomersPage() {
   const { lang } = useLang();
-  const { data: customers = [], isLoading } = useCustomers();
+  const {
+    data: customers = [],
+    isLoading,
+    error: customersError,
+  } = useCustomers();
   const addCustomer = useAddCustomer();
 
   const [search, setSearch] = useState("");
@@ -139,8 +144,8 @@ export default function CustomersPage() {
       toast.success(
         lang === "mr" ? "ग्राहक जोडला" : "Customer added successfully",
       );
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 
@@ -174,7 +179,18 @@ export default function CustomersPage() {
         />
       </div>
 
-      {isLoading ? (
+      {customersError ? (
+        <div className="text-center py-12 space-y-3">
+          <p className="text-destructive font-medium">
+            {lang === "mr"
+              ? "ग्राहक लोड करता आले नाही"
+              : "Could not load customers"}
+          </p>
+          <p className="text-xs text-muted-foreground font-mono bg-secondary p-2 rounded">
+            {extractErrorMessage(customersError)}
+          </p>
+        </div>
+      ) : isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-20" />

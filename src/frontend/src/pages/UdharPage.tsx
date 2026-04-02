@@ -12,13 +12,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, CheckCircle2, Loader2, Wallet } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle2,
+  Loader2,
+  PlusCircle,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLang } from "../App";
 import { Variant_paid_locked_draft_partial } from "../backend";
 import type { Invoice } from "../backend";
 import {
+  extractErrorMessage,
+  useAddManualUdhar,
   useCustomers,
   useInvoices,
   useReceivePayment,
@@ -41,6 +49,7 @@ export default function UdharPage() {
   const { data: allInvoices = [] } = useInvoices();
   const { data: customers = [] } = useCustomers();
   const receivePayment = useReceivePayment();
+  const addManualUdhar = useAddManualUdhar();
 
   const [filter, setFilter] = useState<"all" | "pending" | "cleared">(
     "pending",
@@ -50,6 +59,12 @@ export default function UdharPage() {
     useState<CustomerUdharSummary | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentError, setPaymentError] = useState("");
+
+  // Manual udhar state
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualPhone, setManualPhone] = useState("");
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualNotes, setManualNotes] = useState("");
 
   // Group udhar by customer
   const customerSummaries = (() => {
@@ -113,12 +128,14 @@ export default function UdharPage() {
     if (!paymentTarget) return;
     const amount = Number.parseFloat(paymentAmount);
     if (Number.isNaN(amount) || amount <= 0) {
-      setPaymentError(lang === "mr" ? "রक्कम ভরা" : "Enter a valid amount");
+      setPaymentError(lang === "mr" ? "रक्कम भरा" : "Enter a valid amount");
       return;
     }
     if (amount > paymentTarget.totalUdhar) {
       setPaymentError(
-        lang === "mr" ? "রक्कम उधाরापেक्ষা তরাল" : "Amount exceeds udhar balance",
+        lang === "mr"
+          ? "रक्कम उधारापेक्षा जास्त आहे"
+          : "Amount exceeds udhar balance",
       );
       return;
     }
@@ -143,8 +160,40 @@ export default function UdharPage() {
       await receivePayment.mutateAsync({ invoiceId: unpaidInvoice.id, amount });
       toast.success(t(lang, "paymentSuccess"));
       setPaymentOpen(false);
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
+    }
+  }
+
+  async function handleAddManualUdhar() {
+    if (!manualPhone.trim()) {
+      toast.error(
+        lang === "mr"
+          ? "ग्राहकाचा फोन प्रक्रमांक आवश्यक"
+          : "Customer phone is required",
+      );
+      return;
+    }
+    const amount = Number.parseFloat(manualAmount);
+    if (Number.isNaN(amount) || amount <= 0) {
+      toast.error(lang === "mr" ? "যোग्य रक्कम आवश्यक" : "Enter a valid amount");
+      return;
+    }
+    try {
+      await addManualUdhar.mutateAsync({
+        customerPhone: manualPhone.trim(),
+        amount,
+        notes: manualNotes.trim(),
+      });
+      toast.success(
+        lang === "mr" ? "उधार नोंद केला" : "Manual udhar added successfully",
+      );
+      setManualOpen(false);
+      setManualPhone("");
+      setManualAmount("");
+      setManualNotes("");
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 
@@ -154,13 +203,24 @@ export default function UdharPage() {
         <h1 className="font-display text-2xl md:text-3xl font-bold">
           {t(lang, "udharTitle")}
         </h1>
-        <div className="bg-card border border-border rounded-lg px-4 py-2">
-          <p className="text-xs text-muted-foreground">
-            {t(lang, "totalUdhar")}
-          </p>
-          <p className="text-xl font-bold text-yellow-400">
-            ₹{totalPendingUdhar.toLocaleString("en-IN")}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="bg-card border border-border rounded-lg px-4 py-2">
+            <p className="text-xs text-muted-foreground">
+              {t(lang, "totalUdhar")}
+            </p>
+            <p className="text-xl font-bold text-yellow-400">
+              ₹{totalPendingUdhar.toLocaleString("en-IN")}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"
+            onClick={() => setManualOpen(true)}
+          >
+            <PlusCircle size={14} className="mr-1.5" />
+            {lang === "mr" ? "उधार जोडा" : "Add Udhar"}
+          </Button>
         </div>
       </div>
 
@@ -387,6 +447,69 @@ export default function UdharPage() {
                 <Loader2 size={14} className="mr-2 animate-spin" />
               ) : null}
               {t(lang, "submitPayment")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Udhar Modal */}
+      <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              {lang === "mr" ? "मॅन्युअल उधार नोंद करा" : "Add Manual Udhar"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>
+                {lang === "mr" ? "ग्राहकाचा फोन नंबर" : "Customer Phone Number"}
+              </Label>
+              <Input
+                type="tel"
+                value={manualPhone}
+                onChange={(e) => setManualPhone(e.target.value)}
+                placeholder={lang === "mr" ? "फोन नंबर" : "Phone number"}
+                className="bg-input text-base"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                {lang === "mr" ? "उधार रक्कम (₹)" : "Udhar Amount (₹)"}
+              </Label>
+              <Input
+                type="number"
+                value={manualAmount}
+                onChange={(e) => setManualAmount(e.target.value)}
+                placeholder="0"
+                className="bg-input text-base"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                {lang === "mr" ? "नोंद (ऐच्छिक)" : "Notes (optional)"}
+              </Label>
+              <Input
+                value={manualNotes}
+                onChange={(e) => setManualNotes(e.target.value)}
+                placeholder={lang === "mr" ? "कारण लिहा" : "Reason..."}
+                className="bg-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualOpen(false)}>
+              {t(lang, "cancel")}
+            </Button>
+            <Button
+              className="gold-gradient text-primary-foreground"
+              onClick={handleAddManualUdhar}
+              disabled={addManualUdhar.isPending}
+            >
+              {addManualUdhar.isPending ? (
+                <Loader2 size={14} className="mr-2 animate-spin" />
+              ) : null}
+              {lang === "mr" ? "उधार जोडा" : "Add Udhar"}
             </Button>
           </DialogFooter>
         </DialogContent>

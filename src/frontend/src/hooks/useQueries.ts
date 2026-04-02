@@ -16,39 +16,7 @@ import { useActor } from "./useActor";
 
 /**
  * Gets stored credentials from localStorage.
- * Throws if credentials are not found — this forces the caller to handle the missing creds case.
- */
-function getStoredCreds(): { phone: string; password: string } {
-  const raw = localStorage.getItem("omkar_creds");
-  if (!raw) throw new Error("NO_CREDS");
-  const creds = JSON.parse(raw) as { phone: string; password: string };
-  if (!creds.phone || !creds.password) throw new Error("NO_CREDS");
-  return creds;
-}
-
-/**
- * Re-establishes the backend session by calling actor.login().
- * Throws if login fails for any reason.
- */
-async function doLogin(actor: backendInterface): Promise<void> {
-  const creds = getStoredCreds();
-  await actor.login(creds.phone, creds.password);
-}
-
-/**
- * Calls a backend function with automatic session re-establishment.
- * Pattern:
- * 1. Call login() first to ensure session is active (handles post-deployment session loss)
- * 2. Call the actual backend function
- * 3. If backend returns Unauthorized (shouldn't happen after step 1, but just in case),
- *    retry login and call again once more
- *
- * This replaces the old silent `ensureAuth` that was hiding errors.
- */
-
-/**
- * Gets stored credentials for direct credential-based backend calls.
- * Returns null if not available.
+ * Returns null if not found.
  */
 function getCredsOrNull(): { phone: string; password: string } | null {
   try {
@@ -62,41 +30,36 @@ function getCredsOrNull(): { phone: string; password: string } | null {
   }
 }
 
-async function withAuth<T>(
-  actor: backendInterface,
-  fn: () => Promise<T>,
-): Promise<T> {
-  // Step 1: Always re-establish session before the call
-  try {
-    await doLogin(actor);
-  } catch (loginErr) {
-    const msg = String(loginErr);
-    if (msg.includes("NO_CREDS")) {
-      // No credentials stored — user needs to log in manually
-      // Clear frontend auth so the login screen appears
-      localStorage.removeItem("omkar_auth");
-      window.location.hash = "/login";
-      throw new Error("कृपया पुन्हा लॉग इन करा | Please log in again");
-    }
-    // Other login failure (wrong password, user not found, network) — propagate
-    throw loginErr;
+/**
+ * Gets stored credentials and throws if missing (for mutations that MUST have creds).
+ */
+function requireCreds(): { phone: string; password: string } {
+  const creds = getCredsOrNull();
+  if (!creds) {
+    localStorage.removeItem("omkar_auth");
+    window.location.hash = "/login";
+    throw new Error("कृपया पुन्हा लॉग इन करा | Please log in again");
   }
+  return creds;
+}
 
-  // Step 2: Call the actual function
-  try {
-    return await fn();
-  } catch (err) {
-    const msg = String(err);
-    // If still Unauthorized after login (very rare race condition), retry once
-    if (
-      msg.includes("Unauthorized") ||
-      msg.includes("Authentication required")
-    ) {
-      await doLogin(actor);
-      return await fn();
-    }
-    throw err;
+/**
+ * Extracts a human-readable error message from any error type.
+ */
+export function extractErrorMessage(e: unknown): string {
+  if (!e) return "Unknown error";
+  if (typeof e === "string") return e;
+  if (e instanceof Error) {
+    // ICP errors often look like: "Call failed...with message: 'Unauthorized: ...'"
+    const msg = e.message;
+    const match = msg.match(/with message:\s*'([^']+)'/s);
+    if (match) return match[1];
+    // Also try to extract trapped messages
+    const trapMatch = msg.match(/(?:trap|error|reject).*?:\s*(.+)/is);
+    if (trapMatch) return trapMatch[1].trim();
+    return msg;
   }
+  return String(e);
 }
 
 export function useCustomers() {
@@ -105,7 +68,10 @@ export function useCustomers() {
     queryKey: ["customers"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getCustomers();
+      const creds = getCredsOrNull();
+      if (creds)
+        return actor.getCustomersWithCreds(creds.phone, creds.password);
+      return [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -129,7 +95,6 @@ export function useGoldRates() {
     queryKey: ["goldRates"],
     queryFn: async () => {
       if (!actor) return { gold24k: 0, gold22k: 0, gold18k: 0, silver: 0 };
-      // Use public endpoint (no auth required) so this always works
       return actor.getGoldRatesPublic();
     },
     enabled: !!actor && !isFetching,
@@ -142,7 +107,9 @@ export function useInvoices() {
     queryKey: ["invoices"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getInvoices();
+      const creds = getCredsOrNull();
+      if (creds) return actor.getInvoicesWithCreds(creds.phone, creds.password);
+      return [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -166,7 +133,14 @@ export function useInvoicesByCustomer(customerId: string | null) {
     queryKey: ["invoicesByCustomer", customerId],
     queryFn: async () => {
       if (!actor || !customerId) return [];
-      return actor.getInvoicesByCustomer(customerId);
+      const creds = getCredsOrNull();
+      if (creds)
+        return actor.getInvoicesByCustomerWithCreds(
+          creds.phone,
+          creds.password,
+          customerId,
+        );
+      return [];
     },
     enabled: !!actor && !isFetching && !!customerId,
   });
@@ -178,7 +152,10 @@ export function useUdharLedger() {
     queryKey: ["udharLedger"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getUdharLedger();
+      const creds = getCredsOrNull();
+      if (creds)
+        return actor.getUdharLedgerWithCreds(creds.phone, creds.password);
+      return [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -195,12 +172,20 @@ export function useReports() {
           totalUdhar: 0,
           counts: { total: 0n, paid: 0n, unpaid: 0n },
         };
-      const [totalSales, totalUdhar, counts] = await Promise.all([
-        actor.getTotalSales(),
-        actor.getTotalUdharPending(),
-        actor.getInvoiceCounts(),
-      ]);
-      return { totalSales, totalUdhar, counts };
+      const creds = getCredsOrNull();
+      if (creds) {
+        const [totalSales, totalUdhar, counts] = await Promise.all([
+          actor.getTotalSalesWithCreds(creds.phone, creds.password),
+          actor.getTotalUdharPendingWithCreds(creds.phone, creds.password),
+          actor.getInvoiceCountsWithCreds(creds.phone, creds.password),
+        ]);
+        return { totalSales, totalUdhar, counts };
+      }
+      return {
+        totalSales: 0,
+        totalUdhar: 0,
+        counts: { total: 0n, paid: 0n, unpaid: 0n },
+      };
     },
     enabled: !!actor && !isFetching,
   });
@@ -212,7 +197,10 @@ export function useJobOrders() {
     queryKey: ["jobOrders"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getJobOrders();
+      const creds = getCredsOrNull();
+      if (creds)
+        return actor.getJobOrdersWithCreds(creds.phone, creds.password);
+      return [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -231,7 +219,8 @@ export function useSettings() {
           gstNumber: "",
           defaultLanguage: "en",
         };
-      return actor.getSettings();
+      // Use public endpoint -- no auth needed
+      return actor.getSettingsPublic();
     },
     enabled: !!actor && !isFetching,
   });
@@ -242,18 +231,10 @@ export function useAddCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (customer: CustomerDTO) => {
-      if (!actor) throw new Error("No actor");
-      // Use credential-based auth to bypass unreliable session state
-      const creds = getCredsOrNull();
-      if (creds) {
-        return actor.addCustomerWithCreds(
-          creds.phone,
-          creds.password,
-          customer,
-        );
-      }
-      // Fallback to session auth if no creds stored
-      return withAuth(actor, () => actor.addCustomer(customer));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.addCustomerWithCreds(creds.phone, creds.password, customer);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
   });
@@ -264,8 +245,10 @@ export function useCreateInvoice() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (invoice: InvoiceDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.createInvoice(invoice));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.createInvoiceWithCreds(creds.phone, creds.password, invoice);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -280,8 +263,10 @@ export function useLockInvoice() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.lockInvoice(id));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.lockInvoiceWithCreds(creds.phone, creds.password, id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
   });
@@ -295,8 +280,43 @@ export function useReceivePayment() {
       invoiceId,
       amount,
     }: { invoiceId: string; amount: number }) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.receivePayment(invoiceId, amount));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.receivePaymentWithCreds(
+        creds.phone,
+        creds.password,
+        invoiceId,
+        amount,
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["udharLedger"] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
+    },
+  });
+}
+
+export function useAddManualUdhar() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      customerPhone,
+      amount,
+      notes,
+    }: { customerPhone: string; amount: number; notes: string }) => {
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.addManualUdharWithCreds(
+        creds.phone,
+        creds.password,
+        customerPhone,
+        amount,
+        notes,
+      );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["udharLedger"] });
@@ -311,8 +331,15 @@ export function useUpdateGoldRate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (rate: GoldRateDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.updateGoldRate(rate));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.updateGoldRatesWithCreds(creds.phone, creds.password, {
+        gold24k: 0,
+        gold22k: rate.ratePerGram,
+        gold18k: 0,
+        silver: 0,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goldRate"] });
@@ -326,18 +353,10 @@ export function useUpdateGoldRates() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (rates: GoldRatesDTO) => {
-      if (!actor) throw new Error("No actor");
-      // Use credential-based auth to bypass unreliable session state
-      const creds = getCredsOrNull();
-      if (creds) {
-        return actor.updateGoldRatesWithCreds(
-          creds.phone,
-          creds.password,
-          rates,
-        );
-      }
-      // Fallback to session auth
-      return withAuth(actor, () => actor.updateGoldRates(rates));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.updateGoldRatesWithCreds(creds.phone, creds.password, rates);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goldRates"] });
@@ -351,8 +370,10 @@ export function useCreateJobOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (job: JobOrderDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.createJobOrder(job));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.createJobOrderWithCreds(creds.phone, creds.password, job);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["jobOrders"] }),
   });
@@ -363,8 +384,10 @@ export function useUpdateJobOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (update: JobOrderUpdateDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.updateJobOrder(update));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.updateJobOrderWithCreds(creds.phone, creds.password, update);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["jobOrders"] }),
   });
@@ -375,8 +398,14 @@ export function useUpdateSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (settings: SettingsDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.updateSettings(settings));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.updateSettingsWithCreds(
+        creds.phone,
+        creds.password,
+        settings,
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
@@ -386,14 +415,10 @@ export function useCreateUser() {
   const { actor } = useActor();
   return useMutation({
     mutationFn: async (user: UserDTO) => {
-      if (!actor) throw new Error("No actor");
-      // Use credential-based auth to bypass unreliable session state
-      const creds = getCredsOrNull();
-      if (creds) {
-        return actor.createUserWithCreds(creds.phone, creds.password, user);
-      }
-      // Fallback to session auth if no creds stored
-      return withAuth(actor, () => actor.createUser(user));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.createUserWithCreds(creds.phone, creds.password, user);
     },
   });
 }
@@ -423,7 +448,10 @@ export function useRepairOrders() {
     queryKey: ["repairOrders"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getRepairOrders();
+      const creds = getCredsOrNull();
+      if (creds)
+        return actor.getRepairOrdersWithCreds(creds.phone, creds.password);
+      return [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -434,8 +462,14 @@ export function useCreateRepairOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (order: import("../backend").RepairOrderDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.createRepairOrder(order));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.createRepairOrderWithCreds(
+        creds.phone,
+        creds.password,
+        order,
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["repairOrders"] }),
   });
@@ -446,8 +480,14 @@ export function useUpdateRepairOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (update: import("../backend").RepairOrderUpdateDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.updateRepairOrder(update));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.updateRepairOrderWithCreds(
+        creds.phone,
+        creds.password,
+        update,
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["repairOrders"] }),
   });
@@ -460,7 +500,10 @@ export function useCustomOrders() {
     queryKey: ["customOrders"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getCustomOrders();
+      const creds = getCredsOrNull();
+      if (creds)
+        return actor.getCustomOrdersWithCreds(creds.phone, creds.password);
+      return [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -471,8 +514,14 @@ export function useCreateCustomOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (order: import("../backend").CustomOrderDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.createCustomOrder(order));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.createCustomOrderWithCreds(
+        creds.phone,
+        creds.password,
+        order,
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customOrders"] }),
   });
@@ -483,8 +532,14 @@ export function useUpdateCustomOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (update: import("../backend").CustomOrderUpdateDTO) => {
-      if (!actor) throw new Error("No actor");
-      return withAuth(actor, () => actor.updateCustomOrder(update));
+      if (!actor)
+        throw new Error("Backend not ready. Please wait and try again.");
+      const creds = requireCreds();
+      return actor.updateCustomOrderWithCreds(
+        creds.phone,
+        creds.password,
+        update,
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customOrders"] }),
   });

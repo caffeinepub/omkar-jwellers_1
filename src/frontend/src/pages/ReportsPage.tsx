@@ -198,7 +198,10 @@ export default function ReportsPage() {
                           </span>
                         ) : (
                           <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-                            {inv.status.toUpperCase()}
+                            {(typeof inv.status === "string"
+                              ? inv.status
+                              : (Object.keys(inv.status as object)[0] ?? "")
+                            ).toUpperCase()}
                           </span>
                         )}
                       </td>

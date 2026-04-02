@@ -43,7 +43,12 @@ export function useImageUpload() {
       config.project_id,
       agent,
     );
-    return client.getDirectURL(hash);
+    // Strip the Motoko deduplication sentinel prefix "!caf!" if present
+    const SENTINEL = "!caf!";
+    const cleanHash = hash.startsWith(SENTINEL)
+      ? hash.slice(SENTINEL.length)
+      : hash;
+    return client.getDirectURL(cleanHash);
   }, []);
 
   return { uploadImage, getImageUrl, uploading };
