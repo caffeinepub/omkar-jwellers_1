@@ -1136,114 +1136,218 @@ export class Backend implements backendInterface {
         }
     }
     async loginWithCreds(arg0: string, arg1: string): Promise<UserDTO> {
+        if (this.processError) { try {
+            const result = await this.actor.loginWithCreds(arg0, arg1);
+            return result as unknown as UserDTO;
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.loginWithCreds(arg0, arg1);
         return result as unknown as UserDTO;
     }
     async getCustomersWithCreds(arg0: string, arg1: string): Promise<CustomerDTO[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getCustomersWithCreds(arg0, arg1);
+            return result as unknown as CustomerDTO[];
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getCustomersWithCreds(arg0, arg1);
         return result as unknown as CustomerDTO[];
     }
     async getCustomerWithCreds(arg0: string, arg1: string, arg2: string): Promise<Customer | null> {
+        if (this.processError) { try {
+            const result = await this.actor.getCustomerWithCreds(arg0, arg1, arg2);
+            return (result as [Customer] | [])[0] ?? null;
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getCustomerWithCreds(arg0, arg1, arg2);
         return (result as [Customer] | [])[0] ?? null;
     }
     async getUserProfileWithCreds(arg0: string, arg1: string): Promise<UserProfile> {
+        if (this.processError) { try {
+            const result = await this.actor.getUserProfileWithCreds(arg0, arg1);
+            return result as unknown as UserProfile;
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getUserProfileWithCreds(arg0, arg1);
         return result as unknown as UserProfile;
     }
     async createInvoiceWithCreds(arg0: string, arg1: string, arg2: InvoiceDTO): Promise<string> {
+        if (this.processError) { try {
+            const result = await this.actor.createInvoiceWithCreds(arg0, arg1, arg2);
+            return result;
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.createInvoiceWithCreds(arg0, arg1, arg2);
         return result;
     }
     async lockInvoiceWithCreds(arg0: string, arg1: string, arg2: string): Promise<void> {
+        if (this.processError) { try {
+            return this.actor.lockInvoiceWithCreds(arg0, arg1, arg2);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.lockInvoiceWithCreds(arg0, arg1, arg2);
     }
     async updateInvoiceStatusWithCreds(arg0: string, arg1: string, arg2: InvoiceUpdateDTO): Promise<void> {
         const candidArg2 = { id: arg2.id, status: arg2.status === 'paid' ? {paid:null} : arg2.status === 'locked' ? {locked:null} : arg2.status === 'partial' ? {partial:null} : {draft:null} };
+        if (this.processError) { try {
+            return this.actor.updateInvoiceStatusWithCreds(arg0, arg1, candidArg2 as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.updateInvoiceStatusWithCreds(arg0, arg1, candidArg2 as any);
     }
     async getInvoicesWithCreds(arg0: string, arg1: string): Promise<Invoice[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getInvoicesWithCreds(arg0, arg1);
+            return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getInvoicesWithCreds(arg0, arg1);
         return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
     }
     async getInvoicesByCustomerWithCreds(arg0: string, arg1: string, arg2: string): Promise<Invoice[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getInvoicesByCustomerWithCreds(arg0, arg1, arg2);
+            return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getInvoicesByCustomerWithCreds(arg0, arg1, arg2);
         return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
     }
     async receivePaymentWithCreds(arg0: string, arg1: string, arg2: string, arg3: number): Promise<void> {
+        if (this.processError) { try {
+            return this.actor.receivePaymentWithCreds(arg0, arg1, arg2, arg3);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.receivePaymentWithCreds(arg0, arg1, arg2, arg3);
     }
     async addManualUdharWithCreds(arg0: string, arg1: string, arg2: string, arg3: number, arg4: string): Promise<string> {
+        if (this.processError) { try {
+            return this.actor.addManualUdharWithCreds(arg0, arg1, arg2, arg3, arg4);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.addManualUdharWithCreds(arg0, arg1, arg2, arg3, arg4);
     }
     async getUdharLedgerWithCreds(arg0: string, arg1: string): Promise<Invoice[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getUdharLedgerWithCreds(arg0, arg1);
+            return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getUdharLedgerWithCreds(arg0, arg1);
         return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
     }
     async getPaymentHistoryWithCreds(arg0: string, arg1: string, arg2: string): Promise<Invoice[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getPaymentHistoryWithCreds(arg0, arg1, arg2);
+            return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getPaymentHistoryWithCreds(arg0, arg1, arg2);
         return from_candid_vec_n36(this._uploadFile, this._downloadFile, result as any);
     }
     async getTotalSalesWithCreds(arg0: string, arg1: string): Promise<number> {
+        if (this.processError) { try {
+            return this.actor.getTotalSalesWithCreds(arg0, arg1);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.getTotalSalesWithCreds(arg0, arg1);
     }
     async getTotalUdharPendingWithCreds(arg0: string, arg1: string): Promise<number> {
+        if (this.processError) { try {
+            return this.actor.getTotalUdharPendingWithCreds(arg0, arg1);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.getTotalUdharPendingWithCreds(arg0, arg1);
     }
     async getInvoiceCountsWithCreds(arg0: string, arg1: string): Promise<{total: bigint, paid: bigint, unpaid: bigint}> {
+        if (this.processError) { try {
+            const result = await this.actor.getInvoiceCountsWithCreds(arg0, arg1);
+            return result as unknown as {total: bigint, paid: bigint, unpaid: bigint};
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getInvoiceCountsWithCreds(arg0, arg1);
         return result as unknown as {total: bigint, paid: bigint, unpaid: bigint};
     }
     async createJobOrderWithCreds(arg0: string, arg1: string, arg2: JobOrderDTO): Promise<string> {
         const candidArg2 = { customerName: arg2.customerName, description: arg2.description, assignedKaragir: arg2.assignedKaragir, dueDate: arg2.dueDate };
+        if (this.processError) { try {
+            return this.actor.createJobOrderWithCreds(arg0, arg1, candidArg2 as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.createJobOrderWithCreds(arg0, arg1, candidArg2 as any);
     }
     async updateJobOrderWithCreds(arg0: string, arg1: string, arg2: JobOrderUpdateDTO): Promise<void> {
         const candidArg2 = { id: arg2.id, notes: arg2.notes, status: arg2.status === 'pending' ? {pending:null} : arg2.status === 'completed' ? {completed:null} : {inProgress:null} };
+        if (this.processError) { try {
+            return this.actor.updateJobOrderWithCreds(arg0, arg1, candidArg2 as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.updateJobOrderWithCreds(arg0, arg1, candidArg2 as any);
     }
     async getJobOrdersWithCreds(arg0: string, arg1: string): Promise<JobOrder[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getJobOrdersWithCreds(arg0, arg1);
+            return from_candid_vec_n41(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getJobOrdersWithCreds(arg0, arg1);
         return from_candid_vec_n41(this._uploadFile, this._downloadFile, result as any);
     }
     async createRepairOrderWithCreds(arg0: string, arg1: string, arg2: RepairOrderDTO): Promise<string> {
         const candidArg2 = { ...arg2, referenceImageHash: arg2.referenceImageHash ? [arg2.referenceImageHash] : [] };
+        if (this.processError) { try {
+            return this.actor.createRepairOrderWithCreds(arg0, arg1, candidArg2 as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.createRepairOrderWithCreds(arg0, arg1, candidArg2 as any);
     }
     async updateRepairOrderWithCreds(arg0: string, arg1: string, arg2: RepairOrderUpdateDTO): Promise<void> {
         const candidArg2 = { id: arg2.id, notes: arg2.notes, status: arg2.status === 'delivered' ? {delivered:null} : arg2.status === 'ready' ? {ready:null} : arg2.status === 'inProgress' ? {inProgress:null} : {received:null} };
+        if (this.processError) { try {
+            return this.actor.updateRepairOrderWithCreds(arg0, arg1, candidArg2 as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.updateRepairOrderWithCreds(arg0, arg1, candidArg2 as any);
     }
     async getRepairOrdersWithCreds(arg0: string, arg1: string): Promise<RepairOrder[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getRepairOrdersWithCreds(arg0, arg1);
+            return from_candid_vec_n45(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getRepairOrdersWithCreds(arg0, arg1);
         return from_candid_vec_n45(this._uploadFile, this._downloadFile, result as any);
     }
     async createCustomOrderWithCreds(arg0: string, arg1: string, arg2: CustomOrderDTO): Promise<string> {
         const candidArg2 = { ...arg2, referenceImageHash: arg2.referenceImageHash ? [arg2.referenceImageHash] : [] };
+        if (this.processError) { try {
+            return this.actor.createCustomOrderWithCreds(arg0, arg1, candidArg2 as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.createCustomOrderWithCreds(arg0, arg1, candidArg2 as any);
     }
     async updateCustomOrderWithCreds(arg0: string, arg1: string, arg2: CustomOrderUpdateDTO): Promise<void> {
         const candidArg2 = { id: arg2.id, designNotes: arg2.designNotes, status: arg2.status === 'delivered' ? {delivered:null} : arg2.status === 'ready' ? {ready:null} : arg2.status === 'inProgress' ? {inProgress:null} : {received:null} };
+        if (this.processError) { try {
+            return this.actor.updateCustomOrderWithCreds(arg0, arg1, candidArg2 as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.updateCustomOrderWithCreds(arg0, arg1, candidArg2 as any);
     }
     async getCustomOrdersWithCreds(arg0: string, arg1: string): Promise<CustomOrder[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getCustomOrdersWithCreds(arg0, arg1);
+            return from_candid_vec_n30(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getCustomOrdersWithCreds(arg0, arg1);
         return from_candid_vec_n30(this._uploadFile, this._downloadFile, result as any);
     }
     async updateSettingsWithCreds(arg0: string, arg1: string, arg2: SettingsDTO): Promise<void> {
+        if (this.processError) { try {
+            return this.actor.updateSettingsWithCreds(arg0, arg1, arg2);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.updateSettingsWithCreds(arg0, arg1, arg2);
     }
     async getUsersWithCreds(arg0: string, arg1: string): Promise<UserDTO[]> {
+        if (this.processError) { try {
+            const result = await this.actor.getUsersWithCreds(arg0, arg1);
+            return from_candid_vec_UserDTO(this._uploadFile, this._downloadFile, result as any);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         const result = await this.actor.getUsersWithCreds(arg0, arg1);
         return from_candid_vec_UserDTO(this._uploadFile, this._downloadFile, result as any);
     }
     async updateUserWithCreds(arg0: string, arg1: string, arg2: UserDTO): Promise<void> {
+        if (this.processError) { try {
+            return this.actor.updateUserWithCreds(arg0, arg1, to_candid_UserDTO_n14(this._uploadFile, this._downloadFile, arg2));
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.updateUserWithCreds(arg0, arg1, to_candid_UserDTO_n14(this._uploadFile, this._downloadFile, arg2));
     }
     async deleteUserWithCreds(arg0: string, arg1: string, arg2: string): Promise<void> {
+        if (this.processError) { try {
+            return this.actor.deleteUserWithCreds(arg0, arg1, arg2);
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.deleteUserWithCreds(arg0, arg1, arg2);
     }
     async getSettingsPublic(): Promise<SettingsDTO> {
+        if (this.processError) { try {
+            return this.actor.getSettingsPublic();
+        } catch(e) { this.processError(e); throw new Error('unreachable'); } }
         return this.actor.getSettingsPublic();
     }
 }

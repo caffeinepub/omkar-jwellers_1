@@ -202,12 +202,12 @@ export default function Layout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 flex-col bg-sidebar border-r border-sidebar-border">
+      {/* Desktop sidebar — hidden on print */}
+      <aside className="no-print hidden md:flex w-64 flex-shrink-0 flex-col bg-sidebar border-r border-sidebar-border">
         <SidebarContent />
       </aside>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay — hidden on print */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -215,7 +215,7 @@ export default function Layout({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-40 md:hidden"
+              className="no-print fixed inset-0 bg-black/60 z-40 md:hidden"
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside
@@ -223,7 +223,7 @@ export default function Layout({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-64 bg-sidebar border-r border-sidebar-border z-50 md:hidden"
+              className="no-print fixed inset-y-0 left-0 w-64 bg-sidebar border-r border-sidebar-border z-50 md:hidden"
             >
               <SidebarContent />
             </motion.aside>
@@ -233,8 +233,8 @@ export default function Layout({
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile header */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-sidebar border-b border-border">
+        {/* Mobile header — hidden on print */}
+        <header className="no-print md:hidden flex items-center justify-between px-4 py-3 bg-sidebar border-b border-border">
           <button
             type="button"
             data-ocid="nav.menu.button"
@@ -268,8 +268,8 @@ export default function Layout({
 
         <main className="flex-1 overflow-y-auto">{children}</main>
 
-        {/* Footer */}
-        <footer className="hidden md:flex items-center justify-center py-2 border-t border-border">
+        {/* Footer — hidden on print */}
+        <footer className="no-print hidden md:flex items-center justify-center py-2 border-t border-border">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()}. Built with ❤️ using{" "}
             <a

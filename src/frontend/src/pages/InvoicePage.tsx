@@ -101,7 +101,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
     <div
       className={`min-h-screen ${isPublic ? "bg-gray-50" : "bg-background"}`}
     >
-      {/* Action bar (hidden on print) */}
+      {/* Action bar — hidden on print */}
       <div className="no-print sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           {!isPublic && (
@@ -116,6 +116,11 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
           )}
           <div className="flex-1 flex items-center gap-2">
             <span className="font-semibold text-sm">{invoice.id}</span>
+            {invoice.gst && (
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                TAX INVOICE
+              </Badge>
+            )}
             {isPaid && (
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
                 PAID
@@ -163,7 +168,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
         </div>
       </div>
 
-      {/* Invoice document */}
+      {/* Invoice document — this is the ONLY thing printed */}
       <div className="max-w-4xl mx-auto p-4 md:p-8">
         <div
           ref={printRef}
@@ -215,18 +220,46 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     >
                       <p>{settings.address}</p>
                       <p>{settings.phone}</p>
-                      {settings.gstNumber && <p>GST: {settings.gstNumber}</p>}
+                      {invoice.gst && settings.gstNumber && (
+                        <p>GST: {settings.gstNumber}</p>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
+                {/* TAX INVOICE label — shown only when GST is enabled */}
+                {invoice.gst && (
+                  <div
+                    style={{
+                      display: "inline-block",
+                      background: "rgba(212,175,55,0.15)",
+                      border: "1px solid #D4AF37",
+                      borderRadius: "4px",
+                      padding: "3px 10px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#D4AF37",
+                        fontWeight: 700,
+                        fontSize: "11px",
+                        letterSpacing: "1.5px",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      TAX INVOICE
+                    </span>
+                  </div>
+                )}
                 <p
                   style={{
                     fontSize: "11px",
                     color: "#a08020",
                     textTransform: "uppercase",
                     letterSpacing: "1px",
+                    marginTop: invoice.gst ? "0" : undefined,
                   }}
                 >
                   {t(invLang, "invoiceNo")}
@@ -720,7 +753,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
           </div>
         </div>
 
-        {/* Caffeine attribution */}
+        {/* Caffeine attribution — hidden on print */}
         <p className="text-center text-xs text-muted-foreground mt-6 no-print">
           © {new Date().getFullYear()}. Built with ❤️ using{" "}
           <a

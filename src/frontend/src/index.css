@@ -89,18 +89,88 @@
 }
 
 @media print {
+  /* Hide all browser/app chrome */
   .no-print {
     display: none !important;
   }
 
+  /* Reset page margins to eliminate browser header/footer (URL, date, time) */
+  @page {
+    margin: 0;
+    size: A4 portrait;
+  }
+
+  /* Clean white background, no scrollbars */
+  html,
   body {
     background: white !important;
     color: black !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
+  /* Hide sidebar, mobile header, layout chrome */
+  aside,
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+
+  /* Make the main content fill the page */
+  .flex.h-screen {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Invoice wrapper: remove dark background, padding, max-width constraint */
+  .min-h-screen {
+    min-height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  /* Remove outer padding/max-width wrapper */
+  .max-w-4xl {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Invoice card: remove shadow, rounded corners, ensure white bg */
   .print-invoice {
     background: white !important;
     color: black !important;
-    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    page-break-inside: avoid;
+    width: 100% !important;
+    padding: 10mm !important;
+  }
+
+  /* Ensure all text inside invoice is black/readable */
+  .print-invoice * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Fit content to one page */
+  * {
+    page-break-after: avoid;
+  }
+
+  table {
+    page-break-inside: avoid;
   }
 }
