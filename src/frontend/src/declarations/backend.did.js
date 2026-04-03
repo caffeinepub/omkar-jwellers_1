@@ -329,6 +329,9 @@ export const idlService = IDL.Service({
   'getCustomOrdersWithCreds' : IDL.Func([IDL.Text, IDL.Text], [IDL.Vec(CustomOrder)], ['query']),
   'updateSettingsWithCreds' : IDL.Func([IDL.Text, IDL.Text, SettingsDTO], [], []),
   'getSettingsPublic' : IDL.Func([], [SettingsDTO], ['query']),
+  'getUsersWithCreds' : IDL.Func([IDL.Text, IDL.Text], [IDL.Vec(UserDTO)], ['query']),
+  'updateUserWithCreds' : IDL.Func([IDL.Text, IDL.Text, UserDTO], [], []),
+  'deleteUserWithCreds' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
 });
 
 export const idlInitArgs = [];
@@ -665,6 +668,9 @@ export const idlFactory = ({ IDL }) => {
     'getCustomOrdersWithCreds' : IDL.Func([IDL.Text, IDL.Text], [IDL.Vec(CustomOrder)], ['query']),
     'updateSettingsWithCreds' : IDL.Func([IDL.Text, IDL.Text, SettingsDTO], [], []),
     'getSettingsPublic' : IDL.Func([], [SettingsDTO], ['query']),
+    'getUsersWithCreds' : IDL.Func([IDL.Text, IDL.Text], [IDL.Vec(UserDTO)], ['query']),
+    'updateUserWithCreds' : IDL.Func([IDL.Text, IDL.Text, UserDTO], [], []),
+    'deleteUserWithCreds' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   });
 };
 

@@ -94,6 +94,20 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
     : 0;
   const sgstAmt = cgstAmt;
   const subtotalCalc = invoice.items.reduce((s, it) => s + it.total, 0);
+  // Parse shopDiscount encoded in notes as ||shopDiscount:XX||
+  const shopDiscountMatch = invoice.notes?.match(
+    /\|\|shopDiscount:([\d.]+)\|\|/,
+  );
+  const shopDiscountAmt = shopDiscountMatch
+    ? Number(shopDiscountMatch[1])
+    : ((invoice as any).shopDiscount ?? 0);
+  const oldGoldMatch = invoice.notes?.match(/\|\|oldGold:([\d.]+)\|\|/);
+  const oldGoldAmt = oldGoldMatch ? Number(oldGoldMatch[1]) : 0;
+  const cleanNotes =
+    invoice.notes
+      ?.replace(/\|\|shopDiscount:[\d.]+\|\|/, "")
+      .replace(/\|\|oldGold:[\d.]+\|\|/, "")
+      .trim() ?? "";
   const isUdhar = invoice.udhar > 0;
   const isPaid = invoice.status === Variant_paid_locked_draft_partial.paid;
 
@@ -650,7 +664,15 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       lineHeight: 1.3,
                     }}
                   >
-                    {numberToWords(invoice.totalAmount, invLang)}
+                    {numberToWords(
+                      Math.max(
+                        0,
+                        Math.round(
+                          invoice.totalAmount - oldGoldAmt - shopDiscountAmt,
+                        ),
+                      ),
+                      invLang,
+                    )}
                   </p>
                 </div>
                 {isUdhar && (
@@ -667,7 +689,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     ⚠️ {t(invLang, "udharWarningEn")}
                   </div>
                 )}
-                {invoice.notes && (
+                {cleanNotes && (
                   <p
                     style={{
                       fontSize: "7.5px",
@@ -675,7 +697,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       marginTop: "3px",
                     }}
                   >
-                    <strong>Notes:</strong> {invoice.notes}
+                    <strong>Notes:</strong> {cleanNotes}
                   </p>
                 )}
               </div>
@@ -734,7 +756,21 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     </div>
                   </>
                 )}
-                {(invoice as any).shopDiscount > 0 && (
+                {oldGoldAmt > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "2px",
+                      color: "#b45309",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>Old Gold Deduction</span>
+                    <span>- ₹{oldGoldAmt.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                {shopDiscountAmt > 0 && (
                   <div
                     style={{
                       display: "flex",
@@ -745,12 +781,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     }}
                   >
                     <span>Shop Discount</span>
-                    <span>
-                      - ₹
-                      {((invoice as any).shopDiscount ?? 0).toLocaleString(
-                        "en-IN",
-                      )}
-                    </span>
+                    <span>- ₹{shopDiscountAmt.toLocaleString("en-IN")}</span>
                   </div>
                 )}
                 <div
@@ -765,7 +796,15 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   }}
                 >
                   <span>{t(invLang, "grandTotal")}</span>
-                  <span>₹{invoice.totalAmount.toLocaleString("en-IN")}</span>
+                  <span>
+                    ₹
+                    {Math.max(
+                      0,
+                      Math.round(
+                        invoice.totalAmount - oldGoldAmt - shopDiscountAmt,
+                      ),
+                    ).toLocaleString("en-IN")}
+                  </span>
                 </div>
                 <div
                   style={{

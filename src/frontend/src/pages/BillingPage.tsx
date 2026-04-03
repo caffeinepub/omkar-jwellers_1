@@ -86,6 +86,8 @@ export default function BillingPage() {
   const [sgstPct, setSgstPct] = useState("1.5");
   const [amountPaid, setAmountPaid] = useState("0");
   const [notes, setNotes] = useState("");
+  const [oldGold, setOldGold] = useState("0");
+  const [shopDiscount, setShopDiscount] = useState("0");
   const [_generatedInvoiceId, setGeneratedInvoiceId] = useState<string | null>(
     null,
   );
@@ -116,7 +118,12 @@ export default function BillingPage() {
   const sgstAmount = gstEnabled
     ? (subtotal * (Number.parseFloat(sgstPct) || 0)) / 100
     : 0;
-  const grandTotal = Math.round(subtotal + cgstAmount + sgstAmount);
+  const oldGoldAmt = Number.parseFloat(oldGold) || 0;
+  const discountAmt = Number.parseFloat(shopDiscount) || 0;
+  const grandTotal = Math.max(
+    0,
+    Math.round(subtotal + cgstAmount + sgstAmount - oldGoldAmt - discountAmt),
+  );
   const paidAmt = Number.parseFloat(amountPaid) || 0;
   const udharBalance = Math.max(0, grandTotal - paidAmt);
 
@@ -266,8 +273,13 @@ export default function BillingPage() {
             (Number.parseFloat(sgstPct) || 0)
           : 0,
         language: invoiceLang,
-        notes,
-        partialPayment: paidAmt,
+        notes:
+          oldGoldAmt > 0 || discountAmt > 0
+            ? `${notes}${oldGoldAmt > 0 ? `||oldGold:${oldGoldAmt}||` : ""}${discountAmt > 0 ? `||shopDiscount:${discountAmt}||` : ""}`
+            : notes,
+        // Include oldGold + discount so backend calculates udhar correctly:
+        // udhar = totalAmount - partialPayment = (subtotal+gst) - (paid+oldGold+discount) = grandTotal - paid
+        partialPayment: paidAmt + oldGoldAmt + discountAmt,
       });
       toast.success(lang === "mr" ? "मसुदा जतन केला" : "Draft saved");
       setGeneratedInvoiceId(id);
@@ -300,8 +312,13 @@ export default function BillingPage() {
             (Number.parseFloat(sgstPct) || 0)
           : 0,
         language: invoiceLang,
-        notes,
-        partialPayment: paidAmt,
+        notes:
+          oldGoldAmt > 0 || discountAmt > 0
+            ? `${notes}${oldGoldAmt > 0 ? `||oldGold:${oldGoldAmt}||` : ""}${discountAmt > 0 ? `||shopDiscount:${discountAmt}||` : ""}`
+            : notes,
+        // Include oldGold + discount so backend calculates udhar correctly:
+        // udhar = totalAmount - partialPayment = (subtotal+gst) - (paid+oldGold+discount) = grandTotal - paid
+        partialPayment: paidAmt + oldGoldAmt + discountAmt,
       });
       toast.success(lang === "mr" ? "पावती तयार केली!" : "Invoice generated!");
       setGeneratedInvoiceId(id);
@@ -654,6 +671,44 @@ export default function BillingPage() {
                 <span>₹{sgstAmount.toLocaleString("en-IN")}</span>
               </div>
             </>
+          )}
+          {/* Old Gold Deduction */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-yellow-500">
+              Old Gold Deduction (₹)
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              value={oldGold}
+              onChange={(e) => setOldGold(e.target.value)}
+              placeholder="0"
+              className="h-8 bg-input text-sm border-yellow-500/30 focus:border-yellow-500"
+            />
+          </div>
+          {oldGoldAmt > 0 && (
+            <div className="flex justify-between text-sm font-semibold text-yellow-400">
+              <span>Old Gold Deduction</span>
+              <span>- ₹{oldGoldAmt.toLocaleString("en-IN")}</span>
+            </div>
+          )}
+          {/* Shop Discount */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-green-400">Shop Discount (₹)</Label>
+            <Input
+              type="number"
+              min="0"
+              value={shopDiscount}
+              onChange={(e) => setShopDiscount(e.target.value)}
+              placeholder="0"
+              className="h-8 bg-input text-sm border-green-500/30 focus:border-green-500"
+            />
+          </div>
+          {discountAmt > 0 && (
+            <div className="flex justify-between text-sm font-semibold text-green-400">
+              <span>Shop Discount</span>
+              <span>- ₹{discountAmt.toLocaleString("en-IN")}</span>
+            </div>
           )}
           <div className="flex justify-between font-bold text-base border-t border-border pt-2">
             <span>{t(lang, "grandTotal")}</span>
