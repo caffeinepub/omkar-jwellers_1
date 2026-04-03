@@ -82,8 +82,14 @@ export async function loadConfig(): Promise<Config> {
 
 function extractAgentErrorMessage(error: string): string {
   const errorString = String(error);
-  const match = errorString.match(/with message:\s*'([^']+)'/s);
-  return match ? match[1] : errorString;
+  // Try quoted format: with message: 'Unauthorized: ...'
+  const quotedMatch = errorString.match(/with message:\s*'([^']+)'/s);
+  if (quotedMatch) return quotedMatch[1];
+  // Try unquoted trapped format: trapped with message: Unauthorized: ...
+  const unquotedMatch = errorString.match(/trapped with message:\s*(.+)/s);
+  if (unquotedMatch) return unquotedMatch[1].split('\n')[0].trim();
+  // Fallback: return full error
+  return errorString;
 }
 
 function processError(e: unknown): never {

@@ -43,6 +43,7 @@ import { useAuth, useLang } from "../App";
 import { Role } from "../backend";
 import type { UserDTO } from "../backend";
 import {
+  extractErrorMessage,
   useCreateUser,
   useDeleteUser,
   useSettings,
@@ -122,8 +123,8 @@ export default function SettingsPage() {
     try {
       await updateSettings.mutateAsync(form);
       toast.success(t(lang, "settingsSaved"));
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 

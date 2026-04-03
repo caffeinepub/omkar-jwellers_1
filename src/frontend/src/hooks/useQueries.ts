@@ -50,13 +50,18 @@ export function extractErrorMessage(e: unknown): string {
   if (!e) return "Unknown error";
   if (typeof e === "string") return e;
   if (e instanceof Error) {
-    // ICP errors often look like: "Call failed...with message: 'Unauthorized: ...'"
     const msg = e.message;
-    const match = msg.match(/with message:\s*'([^']+)'/s);
-    if (match) return match[1];
-    // Also try to extract trapped messages
-    const trapMatch = msg.match(/(?:trap|error|reject).*?:\s*(.+)/is);
-    if (trapMatch) return trapMatch[1].trim();
+    // Try quoted format: with message: 'Unauthorized: ...'
+    const quotedMatch = msg.match(/with message:\s*'([^']+)'/s);
+    if (quotedMatch) return quotedMatch[1];
+    // Try unquoted trapped format: trapped with message: Unauthorized: ...
+    const unquotedMatch = msg.match(/trapped with message:\s*(.+)/s);
+    if (unquotedMatch) return unquotedMatch[1].split("\n")[0].trim();
+    // Short clean message: return as-is
+    if (msg.length < 200) return msg;
+    // Long ICP error: extract just the meaningful part
+    const rejectMatch = msg.match(/Reject text:\s*(.+?)(?:\n|$)/i);
+    if (rejectMatch) return rejectMatch[1].trim();
     return msg;
   }
   return String(e);

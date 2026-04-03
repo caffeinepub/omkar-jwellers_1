@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { useLang } from "../App";
 import type { InvoiceItem } from "../backend";
 import {
+  extractErrorMessage,
   useAddCustomer,
   useCreateInvoice,
   useCustomers,
@@ -236,8 +237,8 @@ export default function BillingPage() {
       setAddCustOpen(false);
       setNewCust({ name: "", phone: "", address: "" });
       toast.success(lang === "mr" ? "ग्राहक जोडला" : "Customer added");
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 
@@ -270,8 +271,8 @@ export default function BillingPage() {
       });
       toast.success(lang === "mr" ? "मसुदा जतन केला" : "Draft saved");
       setGeneratedInvoiceId(id);
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 
@@ -305,8 +306,8 @@ export default function BillingPage() {
       toast.success(lang === "mr" ? "पावती तयार केली!" : "Invoice generated!");
       setGeneratedInvoiceId(id);
       window.location.hash = `/view-invoice/${id}`;
-    } catch {
-      toast.error(t(lang, "error"));
+    } catch (e) {
+      toast.error(extractErrorMessage(e));
     }
   }
 
