@@ -94,10 +94,10 @@
     display: none !important;
   }
 
-  /* Reset page margins to eliminate browser header/footer (URL, date, time) */
+  /* A4 portrait — 2 half-A4 invoices (148.5mm each) fit per page */
   @page {
     margin: 0;
-    size: 210mm 148.5mm landscape;
+    size: A4 portrait;
   }
 
   /* Clean white background, no scrollbars */
@@ -105,9 +105,10 @@
   body {
     background: white !important;
     color: black !important;
-    overflow: hidden !important;
-    width: 100% !important;
-    height: auto !important;
+    overflow: visible !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -133,7 +134,7 @@
     margin: 0 !important;
   }
 
-  /* Invoice wrapper: remove dark background, padding, max-width constraint */
+  /* Invoice wrapper: remove dark background, padding */
   .min-h-screen {
     min-height: auto !important;
     background: white !important;
@@ -147,27 +148,25 @@
     margin: 0 !important;
   }
 
-  /* Invoice card: remove shadow, rounded corners, ensure white bg */
+  /* Invoice card: exactly half A4 — 2 per A4 page */
   .print-invoice {
     background: white !important;
     color: black !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    overflow: visible !important;
-    page-break-inside: avoid;
-    width: 100% !important;
-    padding: 6mm !important;
+    overflow: hidden !important;
+    width: 210mm !important;
+    height: 148.5mm !important;
+    max-height: 148.5mm !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    box-sizing: border-box !important;
   }
 
-  /* Ensure all text inside invoice is black/readable */
+  /* Ensure all colours print correctly */
   .print-invoice * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-  }
-
-  /* Fit content to one page */
-  * {
-    page-break-after: avoid;
   }
 
   table {

@@ -97,6 +97,9 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
   const isUdhar = invoice.udhar > 0;
   const isPaid = invoice.status === Variant_paid_locked_draft_partial.paid;
 
+  // Shopname for invoice
+  const shopName = settings?.shopName ?? "ॐकार ज्वेलर्स";
+
   return (
     <div
       className={`min-h-screen ${isPublic ? "bg-gray-50" : "bg-background"}`}
@@ -172,31 +175,52 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
       <div className="max-w-4xl mx-auto p-4 md:p-8">
         <div
           ref={printRef}
-          className="print-invoice bg-white text-gray-900 rounded-xl shadow-lg overflow-hidden"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          className="print-invoice bg-white text-gray-900 rounded-xl shadow-lg"
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            width: "210mm",
+            minHeight: "148.5mm",
+            maxHeight: "148.5mm",
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
         >
-          {/* Header */}
+          {/* ── HEADER ─────────────────────────────────────────────── */}
           <div
             style={{
               background: "linear-gradient(135deg, #1a1200, #3d2b00, #1a1200)",
-              padding: "12px 20px",
+              padding: "6px 14px",
             }}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              {/* Left: logo + shop info */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <img
                   src="/assets/uploads/untitled_design-019d2110-b3c6-757d-b95e-8bd41c35b147-1.png"
                   alt="OMKAR JWELLERS"
-                  className="w-10 h-10 object-contain"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    objectFit: "contain",
+                  }}
                 />
                 <div>
                   <h1
                     style={{
                       fontFamily: "'Playfair Display', serif",
-                      fontSize: "18px",
+                      fontSize: "15px",
                       fontWeight: 700,
                       color: "#D4AF37",
                       margin: 0,
+                      lineHeight: 1.1,
                     }}
                   >
                     {t(invLang, "appName")}
@@ -204,49 +228,48 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   <p
                     style={{
                       color: "#B8962E",
-                      fontSize: "9px",
-                      marginTop: "2px",
+                      fontSize: "7.5px",
+                      margin: "1px 0 0",
                     }}
                   >
                     {t(invLang, "tagline")}
                   </p>
                   {settings && (
-                    <div
+                    <p
                       style={{
                         color: "#a08020",
-                        fontSize: "9px",
-                        marginTop: "3px",
+                        fontSize: "7px",
+                        margin: "1px 0 0",
                       }}
                     >
-                      <p>{settings.address}</p>
-                      <p>{settings.phone}</p>
-                      {invoice.gst && settings.gstNumber && (
-                        <p>GST: {settings.gstNumber}</p>
-                      )}
-                    </div>
+                      {settings.address} | {settings.phone}
+                      {invoice.gst && settings.gstNumber
+                        ? ` | GST: ${settings.gstNumber}`
+                        : ""}
+                    </p>
                   )}
                 </div>
               </div>
+
+              {/* Right: invoice meta */}
               <div style={{ textAlign: "right" }}>
-                {/* TAX INVOICE label — shown only when GST is enabled */}
                 {invoice.gst && (
                   <div
                     style={{
                       display: "inline-block",
                       background: "rgba(212,175,55,0.15)",
                       border: "1px solid #D4AF37",
-                      borderRadius: "4px",
-                      padding: "2px 8px",
-                      marginBottom: "6px",
+                      borderRadius: "3px",
+                      padding: "1px 6px",
+                      marginBottom: "3px",
                     }}
                   >
                     <span
                       style={{
                         color: "#D4AF37",
                         fontWeight: 700,
-                        fontSize: "9px",
-                        letterSpacing: "1.5px",
-                        textTransform: "uppercase",
+                        fontSize: "7px",
+                        letterSpacing: "1px",
                       }}
                     >
                       TAX INVOICE
@@ -255,45 +278,37 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 )}
                 <p
                   style={{
-                    fontSize: "9px",
+                    fontSize: "7px",
                     color: "#a08020",
-                    textTransform: "uppercase",
-                    letterSpacing: "1px",
-                    marginTop: invoice.gst ? "0" : undefined,
+                    letterSpacing: "0.5px",
+                    margin: 0,
                   }}
                 >
                   {t(invLang, "invoiceNo")}
                 </p>
                 <p
                   style={{
-                    fontSize: "14px",
+                    fontSize: "13px",
                     fontWeight: 700,
                     color: "#D4AF37",
                     fontFamily: "'Playfair Display', serif",
+                    margin: "1px 0",
+                    lineHeight: 1,
                   }}
                 >
                   {invoice.id}
                 </p>
-                <p
-                  style={{
-                    fontSize: "9px",
-                    color: "#a08020",
-                    marginTop: "4px",
-                  }}
-                >
-                  {t(invLang, "date")}: {dateStr}
-                </p>
-                <p style={{ fontSize: "9px", color: "#a08020" }}>
-                  {t(invLang, "time")}: {timeStr}
+                <p style={{ fontSize: "7px", color: "#a08020", margin: 0 }}>
+                  {dateStr} {timeStr}
                 </p>
                 {isPaid && (
                   <div
                     style={{
-                      marginTop: "6px",
+                      marginTop: "3px",
                       background: "rgba(22,163,74,0.2)",
-                      border: "2px solid #16a34a",
-                      borderRadius: "6px",
-                      padding: "3px 8px",
+                      border: "1.5px solid #16a34a",
+                      borderRadius: "4px",
+                      padding: "1px 6px",
                       display: "inline-block",
                     }}
                   >
@@ -301,10 +316,32 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       style={{
                         color: "#4ade80",
                         fontWeight: 700,
-                        fontSize: "11px",
+                        fontSize: "9px",
                       }}
                     >
                       ✓ PAID
+                    </span>
+                  </div>
+                )}
+                {isUdhar && !isPaid && (
+                  <div
+                    style={{
+                      marginTop: "3px",
+                      background: "rgba(245,158,11,0.2)",
+                      border: "1px solid #F59E0B",
+                      borderRadius: "4px",
+                      padding: "1px 6px",
+                      display: "inline-block",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#FBBF24",
+                        fontWeight: 700,
+                        fontSize: "8px",
+                      }}
+                    >
+                      {t(invLang, "tempInvoice")}
                     </span>
                   </div>
                 )}
@@ -312,89 +349,84 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
             </div>
           </div>
 
-          {/* Udhar warning */}
-          {isUdhar && !isPaid && (
-            <div
-              style={{
-                background: "#FEF3C7",
-                border: "1px solid #F59E0B",
-                padding: "6px 20px",
-              }}
-            >
-              <p style={{ color: "#92400E", fontSize: "9px", margin: 0 }}>
-                ⚠️ {t(invLang, "udharWarningEn")}
-              </p>
-            </div>
-          )}
-
-          <div style={{ padding: "12px 20px" }}>
-            {/* Customer details */}
-            <div
-              style={{
-                background: "#F9F7F0",
-                borderRadius: "8px",
-                padding: "8px 10px",
-                marginBottom: "10px",
-              }}
-            >
-              <h3
+          {/* ── CUSTOMER + INVOICE DETAILS ROW ─────────────────────── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: "8px",
+              padding: "5px 14px",
+              background: "#F9F7F0",
+              borderBottom: "1px solid #E5DFC5",
+            }}
+          >
+            {/* Customer */}
+            <div>
+              <p
                 style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: "10px",
+                  fontSize: "7px",
                   color: "#78600A",
                   textTransform: "uppercase",
-                  letterSpacing: "1px",
-                  marginBottom: "6px",
+                  letterSpacing: "0.8px",
+                  fontWeight: 700,
+                  margin: "0 0 2px",
                 }}
               >
                 {t(invLang, "customerDetails")}
-              </h3>
-              <div
+              </p>
+              <p
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "6px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#111",
+                  margin: 0,
+                  lineHeight: 1.2,
                 }}
               >
-                <div>
-                  <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
-                    {t(invLang, "customerName")}
-                  </p>
-                  <p
-                    style={{ fontSize: "11px", fontWeight: 600, color: "#111" }}
-                  >
-                    {customer?.name ?? invoice.customerId}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
-                    {t(invLang, "customerPhone")}
-                  </p>
-                  <p
-                    style={{ fontSize: "11px", fontWeight: 600, color: "#111" }}
-                  >
-                    {customer?.phone ?? invoice.customerId}
-                  </p>
-                </div>
-                {customer?.address && (
-                  <div style={{ gridColumn: "span 2" }}>
-                    <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
-                      {t(invLang, "customerAddress")}
-                    </p>
-                    <p style={{ fontSize: "10px", color: "#333" }}>
-                      {customer.address}
-                    </p>
-                  </div>
-                )}
-              </div>
+                {customer?.name ?? invoice.customerId}
+              </p>
+              <p
+                style={{ fontSize: "8.5px", color: "#444", margin: "1px 0 0" }}
+              >
+                {customer?.phone ?? invoice.customerId}
+                {customer?.address ? ` | ${customer.address}` : ""}
+              </p>
             </div>
+            {/* Invoice ref */}
+            <div style={{ textAlign: "right" }}>
+              <p
+                style={{
+                  fontSize: "7px",
+                  color: "#78600A",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  fontWeight: 700,
+                  margin: "0 0 2px",
+                }}
+              >
+                {t(invLang, "date")}
+              </p>
+              <p
+                style={{
+                  fontSize: "9px",
+                  fontWeight: 600,
+                  color: "#333",
+                  margin: 0,
+                }}
+              >
+                {dateStr}
+              </p>
+            </div>
+          </div>
 
-            {/* Items table */}
+          <div style={{ padding: "5px 14px" }}>
+            {/* ── ITEMS TABLE ──────────────────────────────────────────── */}
             <table
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
-                marginBottom: "8px",
+                marginBottom: "4px",
+                fontSize: "8.5px",
               }}
             >
               <thead>
@@ -405,25 +437,45 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   }}
                 >
                   {[
-                    t(invLang, "srNo"),
-                    t(invLang, "itemDescription"),
-                    t(invLang, "purity"),
-                    t(invLang, "weight"),
-                    t(invLang, "rate"),
-                    t(invLang, "total"),
-                  ].map((h, hIdx) => (
+                    {
+                      label: t(invLang, "srNo"),
+                      align: "center",
+                      width: "24px",
+                    },
+                    { label: t(invLang, "itemDescription"), align: "left" },
+                    {
+                      label: t(invLang, "purity"),
+                      align: "center",
+                      width: "36px",
+                    },
+                    {
+                      label: t(invLang, "weight"),
+                      align: "right",
+                      width: "46px",
+                    },
+                    {
+                      label: t(invLang, "rate"),
+                      align: "right",
+                      width: "52px",
+                    },
+                    {
+                      label: t(invLang, "total"),
+                      align: "right",
+                      width: "58px",
+                    },
+                  ].map((col) => (
                     <th
-                      key={h}
+                      key={col.label}
                       style={{
-                        padding: "6px 8px",
-                        textAlign:
-                          hIdx === 0 ? "center" : hIdx >= 3 ? "right" : "left",
-                        fontSize: "9px",
+                        padding: "4px 5px",
+                        textAlign: col.align as "center" | "left" | "right",
+                        fontSize: "7.5px",
                         fontWeight: 600,
-                        letterSpacing: "0.5px",
+                        letterSpacing: "0.3px",
+                        width: col.width,
                       }}
                     >
-                      {h}
+                      {col.label}
                     </th>
                   ))}
                 </tr>
@@ -439,103 +491,211 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   >
                     <td
                       style={{
-                        padding: "5px 8px",
+                        padding: "3px 5px",
                         textAlign: "center",
-                        fontSize: "10px",
-                        color: "#111111",
+                        color: "#111",
                       }}
                     >
                       {itemIdx + 1}
                     </td>
                     <td
                       style={{
-                        padding: "5px 8px",
-                        fontSize: "10px",
-                        fontWeight: 500,
-                        color: "#111111",
+                        padding: "3px 5px",
+                        fontWeight: 600,
+                        color: "#111",
                       }}
                     >
                       {item.description}
                     </td>
                     <td
                       style={{
-                        padding: "5px 8px",
-                        fontSize: "10px",
-                        color: "#111111",
+                        padding: "3px 5px",
+                        textAlign: "center",
+                        color: "#111",
                       }}
                     >
                       {item.purity}K
                     </td>
                     <td
                       style={{
-                        padding: "5px 8px",
+                        padding: "3px 5px",
                         textAlign: "right",
-                        fontSize: "10px",
-                        color: "#111111",
+                        color: "#111",
                       }}
                     >
                       {item.weight}g
                     </td>
                     <td
                       style={{
-                        padding: "5px 8px",
+                        padding: "3px 5px",
                         textAlign: "right",
-                        fontSize: "10px",
-                        color: "#111111",
+                        color: "#111",
                       }}
                     >
                       ₹{item.rate.toLocaleString("en-IN")}
                     </td>
                     <td
                       style={{
-                        padding: "5px 8px",
+                        padding: "3px 5px",
                         textAlign: "right",
-                        fontSize: "10px",
-                        fontWeight: 600,
-                        color: "#111111",
+                        fontWeight: 700,
+                        color: "#111",
                       }}
                     >
                       ₹{item.total.toLocaleString("en-IN")}
                     </td>
                   </tr>
                 ))}
+                {/* Empty filler rows for consistent table height (max 3 items) */}
+                {invoice.items.length < 1 && (
+                  <tr
+                    key="filler-0"
+                    style={{
+                      borderBottom: "1px solid #E5E7EB",
+                      background: "#FAFAFA",
+                    }}
+                  >
+                    <td style={{ padding: "3px 5px" }}>&nbsp;</td>
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                  </tr>
+                )}
+                {invoice.items.length < 2 && (
+                  <tr
+                    key="filler-1"
+                    style={{
+                      borderBottom: "1px solid #E5E7EB",
+                      background: "#FFFFFF",
+                    }}
+                  >
+                    <td style={{ padding: "3px 5px" }}>&nbsp;</td>
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                  </tr>
+                )}
+                {invoice.items.length < 3 && (
+                  <tr
+                    key="filler-2"
+                    style={{
+                      borderBottom: "1px solid #E5E7EB",
+                      background: "#FAFAFA",
+                    }}
+                  >
+                    <td style={{ padding: "3px 5px" }}>&nbsp;</td>
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                    <td style={{ padding: "3px 5px" }} />
+                  </tr>
+                )}
               </tbody>
             </table>
 
             {/* Majuri note */}
             <p
               style={{
-                fontSize: "10px",
-                color: "#555",
-                marginBottom: "6px",
+                fontSize: "7.5px",
+                color: "#666",
+                margin: "0 0 4px",
                 fontStyle: "italic",
               }}
             >
               * मजुरीसह
             </p>
 
-            {/* Totals */}
+            {/* ── TOTALS + AMOUNT IN WORDS ─────────────────────────────── */}
             <div
               style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: "12px",
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                gap: "8px",
+                alignItems: "start",
               }}
             >
+              {/* Left: amount in words + udhar info */}
+              <div>
+                <div
+                  style={{
+                    background: "#F0EDD8",
+                    border: "1px solid #D4AF37",
+                    borderRadius: "5px",
+                    padding: "4px 7px",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: "6.5px",
+                      color: "#9CA3AF",
+                      margin: "0 0 1px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.4px",
+                    }}
+                  >
+                    {t(invLang, "amountInWords")}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "8px",
+                      fontWeight: 600,
+                      color: "#3D2B00",
+                      margin: 0,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {numberToWords(invoice.totalAmount, invLang)}
+                  </p>
+                </div>
+                {isUdhar && (
+                  <div
+                    style={{
+                      background: "#FEF3C7",
+                      border: "1px solid #F59E0B",
+                      borderRadius: "4px",
+                      padding: "3px 7px",
+                      fontSize: "8px",
+                      color: "#92400E",
+                    }}
+                  >
+                    ⚠️ {t(invLang, "udharWarningEn")}
+                  </div>
+                )}
+                {invoice.notes && (
+                  <p
+                    style={{
+                      fontSize: "7.5px",
+                      color: "#555",
+                      marginTop: "3px",
+                    }}
+                  >
+                    <strong>Notes:</strong> {invoice.notes}
+                  </p>
+                )}
+              </div>
+
+              {/* Right: totals breakdown */}
               <div
                 style={{
-                  minWidth: "280px",
+                  minWidth: "170px",
                   background: "#F9F7F0",
-                  borderRadius: "8px",
-                  padding: "8px 10px",
+                  border: "1px solid #E5DFC5",
+                  borderRadius: "5px",
+                  padding: "5px 8px",
+                  fontSize: "8.5px",
                 }}
               >
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    marginBottom: "4px",
-                    fontSize: "10px",
+                    marginBottom: "2px",
                     color: "#555",
                   }}
                 >
@@ -548,8 +708,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        marginBottom: "4px",
-                        fontSize: "10px",
+                        marginBottom: "2px",
                         color: "#555",
                       }}
                     >
@@ -563,8 +722,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        marginBottom: "4px",
-                        fontSize: "10px",
+                        marginBottom: "2px",
                         color: "#555",
                       }}
                     >
@@ -576,14 +734,33 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     </div>
                   </>
                 )}
+                {(invoice as any).shopDiscount > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "2px",
+                      color: "#16a34a",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>Shop Discount</span>
+                    <span>
+                      - ₹
+                      {((invoice as any).shopDiscount ?? 0).toLocaleString(
+                        "en-IN",
+                      )}
+                    </span>
+                  </div>
+                )}
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    padding: "6px 0",
-                    borderTop: "2px solid #D4AF37",
+                    padding: "4px 0 2px",
+                    borderTop: "1.5px solid #D4AF37",
                     fontWeight: 700,
-                    fontSize: "12px",
+                    fontSize: "10px",
                     color: "#78600A",
                   }}
                 >
@@ -594,9 +771,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    marginTop: "4px",
-                    fontSize: "10px",
                     color: "#555",
+                    marginTop: "2px",
                   }}
                 >
                   <span>{t(invLang, "amountPaid")}</span>
@@ -607,13 +783,12 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      marginTop: "4px",
-                      fontWeight: 600,
-                      fontSize: "10px",
+                      marginTop: "2px",
+                      fontWeight: 700,
                       color: "#B45309",
                       background: "#FEF3C7",
-                      padding: "4px 6px",
-                      borderRadius: "4px",
+                      padding: "2px 4px",
+                      borderRadius: "3px",
                     }}
                   >
                     <span>{t(invLang, "udharBalance")}</span>
@@ -623,112 +798,72 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
               </div>
             </div>
 
-            {/* Amount in words */}
-            <div
-              style={{
-                background: "#F0EDD8",
-                border: "1px solid #D4AF37",
-                borderRadius: "8px",
-                padding: "8px 10px",
-                marginBottom: "12px",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "9px",
-                  color: "#9CA3AF",
-                  marginBottom: "2px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {t(invLang, "amountInWords")}
-              </p>
-              <p
-                style={{ fontSize: "10px", fontWeight: 600, color: "#3D2B00" }}
-              >
-                {numberToWords(invoice.totalAmount, invLang)}
-              </p>
-            </div>
-
-            {/* Notes */}
-            {invoice.notes && (
-              <div style={{ marginBottom: "12px" }}>
-                <p
-                  style={{
-                    fontSize: "9px",
-                    color: "#9CA3AF",
-                    marginBottom: "2px",
-                  }}
-                >
-                  Notes
-                </p>
-                <p style={{ fontSize: "10px", color: "#555" }}>
-                  {invoice.notes}
-                </p>
-              </div>
-            )}
-
-            {/* Signatures */}
+            {/* ── SIGNATURES ─────────────────────────────────────────── */}
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: "24px",
-                marginTop: "16px",
+                gap: "16px",
+                marginTop: "8px",
+                paddingTop: "6px",
+                borderTop: "1px solid #E5E7EB",
               }}
             >
               <div>
                 <div
                   style={{
                     borderBottom: "1px dashed #D4AF37",
-                    height: "28px",
-                    marginBottom: "6px",
+                    height: "20px",
+                    marginBottom: "3px",
                   }}
                 />
                 <p
                   style={{
-                    fontSize: "9px",
+                    fontSize: "7px",
                     color: "#9CA3AF",
                     textAlign: "center",
+                    margin: 0,
                   }}
                 >
                   {t(invLang, "shopSignature")}
                 </p>
                 <p
                   style={{
-                    fontSize: "9px",
+                    fontSize: "7.5px",
                     fontWeight: 600,
                     color: "#555",
                     textAlign: "center",
+                    margin: 0,
                   }}
                 >
-                  {settings?.shopName ?? "OMKAR JWELLERS"}
+                  {shopName}
                 </p>
               </div>
               <div>
                 <div
                   style={{
                     borderBottom: "1px dashed #D4AF37",
-                    height: "28px",
-                    marginBottom: "6px",
+                    height: "20px",
+                    marginBottom: "3px",
                   }}
                 />
                 <p
                   style={{
-                    fontSize: "9px",
+                    fontSize: "7px",
                     color: "#9CA3AF",
                     textAlign: "center",
+                    margin: 0,
                   }}
                 >
                   {t(invLang, "customerSignature")}
                 </p>
                 <p
                   style={{
-                    fontSize: "9px",
+                    fontSize: "7.5px",
                     fontWeight: 600,
                     color: "#555",
                     textAlign: "center",
+                    margin: 0,
                   }}
                 >
                   {customer?.name ?? ""}
@@ -736,18 +871,17 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
               </div>
             </div>
 
-            {/* Footer */}
+            {/* ── FOOTER ─────────────────────────────────────────────── */}
             <div
               style={{
-                marginTop: "10px",
-                paddingTop: "8px",
+                marginTop: "5px",
+                paddingTop: "4px",
                 borderTop: "1px solid #E5E7EB",
                 textAlign: "center",
               }}
             >
-              <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
-                Thank you for your business! •{" "}
-                {settings?.shopName ?? "OMKAR JWELLERS"}
+              <p style={{ fontSize: "7px", color: "#9CA3AF", margin: 0 }}>
+                Thank you for your business! • {shopName}
               </p>
             </div>
           </div>
