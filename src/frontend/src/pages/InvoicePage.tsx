@@ -179,21 +179,21 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
           <div
             style={{
               background: "linear-gradient(135deg, #1a1200, #3d2b00, #1a1200)",
-              padding: "32px 40px",
+              padding: "12px 20px",
             }}
           >
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <img
                   src="/assets/uploads/untitled_design-019d2110-b3c6-757d-b95e-8bd41c35b147-1.png"
                   alt="OMKAR JWELLERS"
-                  className="w-16 h-16 object-contain"
+                  className="w-10 h-10 object-contain"
                 />
                 <div>
                   <h1
                     style={{
                       fontFamily: "'Playfair Display', serif",
-                      fontSize: "28px",
+                      fontSize: "18px",
                       fontWeight: 700,
                       color: "#D4AF37",
                       margin: 0,
@@ -204,8 +204,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   <p
                     style={{
                       color: "#B8962E",
-                      fontSize: "12px",
-                      marginTop: "4px",
+                      fontSize: "9px",
+                      marginTop: "2px",
                     }}
                   >
                     {t(invLang, "tagline")}
@@ -214,8 +214,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     <div
                       style={{
                         color: "#a08020",
-                        fontSize: "11px",
-                        marginTop: "6px",
+                        fontSize: "9px",
+                        marginTop: "3px",
                       }}
                     >
                       <p>{settings.address}</p>
@@ -236,15 +236,15 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       background: "rgba(212,175,55,0.15)",
                       border: "1px solid #D4AF37",
                       borderRadius: "4px",
-                      padding: "3px 10px",
-                      marginBottom: "10px",
+                      padding: "2px 8px",
+                      marginBottom: "6px",
                     }}
                   >
                     <span
                       style={{
                         color: "#D4AF37",
                         fontWeight: 700,
-                        fontSize: "11px",
+                        fontSize: "9px",
                         letterSpacing: "1.5px",
                         textTransform: "uppercase",
                       }}
@@ -255,7 +255,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 )}
                 <p
                   style={{
-                    fontSize: "11px",
+                    fontSize: "9px",
                     color: "#a08020",
                     textTransform: "uppercase",
                     letterSpacing: "1px",
@@ -266,7 +266,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 </p>
                 <p
                   style={{
-                    fontSize: "22px",
+                    fontSize: "14px",
                     fontWeight: 700,
                     color: "#D4AF37",
                     fontFamily: "'Playfair Display', serif",
@@ -276,24 +276,24 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 </p>
                 <p
                   style={{
-                    fontSize: "11px",
+                    fontSize: "9px",
                     color: "#a08020",
-                    marginTop: "8px",
+                    marginTop: "4px",
                   }}
                 >
                   {t(invLang, "date")}: {dateStr}
                 </p>
-                <p style={{ fontSize: "11px", color: "#a08020" }}>
+                <p style={{ fontSize: "9px", color: "#a08020" }}>
                   {t(invLang, "time")}: {timeStr}
                 </p>
                 {isPaid && (
                   <div
                     style={{
-                      marginTop: "8px",
+                      marginTop: "6px",
                       background: "rgba(22,163,74,0.2)",
                       border: "2px solid #16a34a",
                       borderRadius: "6px",
-                      padding: "4px 12px",
+                      padding: "3px 8px",
                       display: "inline-block",
                     }}
                   >
@@ -301,7 +301,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       style={{
                         color: "#4ade80",
                         fontWeight: 700,
-                        fontSize: "14px",
+                        fontSize: "11px",
                       }}
                     >
                       ✓ PAID
@@ -318,33 +318,33 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
               style={{
                 background: "#FEF3C7",
                 border: "1px solid #F59E0B",
-                padding: "12px 40px",
+                padding: "6px 20px",
               }}
             >
-              <p style={{ color: "#92400E", fontSize: "12px", margin: 0 }}>
+              <p style={{ color: "#92400E", fontSize: "9px", margin: 0 }}>
                 ⚠️ {t(invLang, "udharWarningEn")}
               </p>
             </div>
           )}
 
-          <div style={{ padding: "32px 40px" }}>
+          <div style={{ padding: "12px 20px" }}>
             {/* Customer details */}
             <div
               style={{
                 background: "#F9F7F0",
                 borderRadius: "8px",
-                padding: "16px",
-                marginBottom: "24px",
+                padding: "8px 10px",
+                marginBottom: "10px",
               }}
             >
               <h3
                 style={{
                   fontFamily: "'Playfair Display', serif",
-                  fontSize: "14px",
+                  fontSize: "10px",
                   color: "#78600A",
                   textTransform: "uppercase",
                   letterSpacing: "1px",
-                  marginBottom: "12px",
+                  marginBottom: "6px",
                 }}
               >
                 {t(invLang, "customerDetails")}
@@ -353,35 +353,35 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
-                  gap: "8px",
+                  gap: "6px",
                 }}
               >
                 <div>
-                  <p style={{ fontSize: "11px", color: "#9CA3AF" }}>
+                  <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
                     {t(invLang, "customerName")}
                   </p>
                   <p
-                    style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}
+                    style={{ fontSize: "11px", fontWeight: 600, color: "#111" }}
                   >
                     {customer?.name ?? invoice.customerId}
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: "11px", color: "#9CA3AF" }}>
+                  <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
                     {t(invLang, "customerPhone")}
                   </p>
                   <p
-                    style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}
+                    style={{ fontSize: "11px", fontWeight: 600, color: "#111" }}
                   >
                     {customer?.phone ?? invoice.customerId}
                   </p>
                 </div>
                 {customer?.address && (
                   <div style={{ gridColumn: "span 2" }}>
-                    <p style={{ fontSize: "11px", color: "#9CA3AF" }}>
+                    <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
                       {t(invLang, "customerAddress")}
                     </p>
-                    <p style={{ fontSize: "13px", color: "#333" }}>
+                    <p style={{ fontSize: "10px", color: "#333" }}>
                       {customer.address}
                     </p>
                   </div>
@@ -394,7 +394,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
-                marginBottom: "24px",
+                marginBottom: "8px",
               }}
             >
               <thead>
@@ -415,10 +415,10 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     <th
                       key={h}
                       style={{
-                        padding: "10px 12px",
+                        padding: "6px 8px",
                         textAlign:
                           hIdx === 0 ? "center" : hIdx >= 3 ? "right" : "left",
-                        fontSize: "11px",
+                        fontSize: "9px",
                         fontWeight: 600,
                         letterSpacing: "0.5px",
                       }}
@@ -439,9 +439,9 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   >
                     <td
                       style={{
-                        padding: "10px 12px",
+                        padding: "5px 8px",
                         textAlign: "center",
-                        fontSize: "13px",
+                        fontSize: "10px",
                         color: "#111111",
                       }}
                     >
@@ -449,8 +449,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     </td>
                     <td
                       style={{
-                        padding: "10px 12px",
-                        fontSize: "13px",
+                        padding: "5px 8px",
+                        fontSize: "10px",
                         fontWeight: 500,
                         color: "#111111",
                       }}
@@ -459,8 +459,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     </td>
                     <td
                       style={{
-                        padding: "10px 12px",
-                        fontSize: "13px",
+                        padding: "5px 8px",
+                        fontSize: "10px",
                         color: "#111111",
                       }}
                     >
@@ -468,9 +468,9 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     </td>
                     <td
                       style={{
-                        padding: "10px 12px",
+                        padding: "5px 8px",
                         textAlign: "right",
-                        fontSize: "13px",
+                        fontSize: "10px",
                         color: "#111111",
                       }}
                     >
@@ -478,9 +478,9 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     </td>
                     <td
                       style={{
-                        padding: "10px 12px",
+                        padding: "5px 8px",
                         textAlign: "right",
-                        fontSize: "13px",
+                        fontSize: "10px",
                         color: "#111111",
                       }}
                     >
@@ -488,9 +488,9 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     </td>
                     <td
                       style={{
-                        padding: "10px 12px",
+                        padding: "5px 8px",
                         textAlign: "right",
-                        fontSize: "13px",
+                        fontSize: "10px",
                         fontWeight: 600,
                         color: "#111111",
                       }}
@@ -505,9 +505,9 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
             {/* Majuri note */}
             <p
               style={{
-                fontSize: "12px",
+                fontSize: "10px",
                 color: "#555",
-                marginBottom: "16px",
+                marginBottom: "6px",
                 fontStyle: "italic",
               }}
             >
@@ -519,7 +519,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
               style={{
                 display: "flex",
                 justifyContent: "flex-end",
-                marginBottom: "24px",
+                marginBottom: "12px",
               }}
             >
               <div
@@ -527,15 +527,15 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   minWidth: "280px",
                   background: "#F9F7F0",
                   borderRadius: "8px",
-                  padding: "16px",
+                  padding: "8px 10px",
                 }}
               >
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    marginBottom: "8px",
-                    fontSize: "13px",
+                    marginBottom: "4px",
+                    fontSize: "10px",
                     color: "#555",
                   }}
                 >
@@ -548,8 +548,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        marginBottom: "8px",
-                        fontSize: "13px",
+                        marginBottom: "4px",
+                        fontSize: "10px",
                         color: "#555",
                       }}
                     >
@@ -563,8 +563,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        marginBottom: "8px",
-                        fontSize: "13px",
+                        marginBottom: "4px",
+                        fontSize: "10px",
                         color: "#555",
                       }}
                     >
@@ -580,10 +580,10 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    padding: "10px 0",
+                    padding: "6px 0",
                     borderTop: "2px solid #D4AF37",
                     fontWeight: 700,
-                    fontSize: "16px",
+                    fontSize: "12px",
                     color: "#78600A",
                   }}
                 >
@@ -594,8 +594,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    marginTop: "8px",
-                    fontSize: "13px",
+                    marginTop: "4px",
+                    fontSize: "10px",
                     color: "#555",
                   }}
                 >
@@ -607,12 +607,12 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      marginTop: "8px",
+                      marginTop: "4px",
                       fontWeight: 600,
-                      fontSize: "13px",
+                      fontSize: "10px",
                       color: "#B45309",
                       background: "#FEF3C7",
-                      padding: "6px 8px",
+                      padding: "4px 6px",
                       borderRadius: "4px",
                     }}
                   >
@@ -629,15 +629,15 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 background: "#F0EDD8",
                 border: "1px solid #D4AF37",
                 borderRadius: "8px",
-                padding: "12px 16px",
-                marginBottom: "32px",
+                padding: "8px 10px",
+                marginBottom: "12px",
               }}
             >
               <p
                 style={{
-                  fontSize: "11px",
+                  fontSize: "9px",
                   color: "#9CA3AF",
-                  marginBottom: "4px",
+                  marginBottom: "2px",
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
                 }}
@@ -645,7 +645,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 {t(invLang, "amountInWords")}
               </p>
               <p
-                style={{ fontSize: "13px", fontWeight: 600, color: "#3D2B00" }}
+                style={{ fontSize: "10px", fontWeight: 600, color: "#3D2B00" }}
               >
                 {numberToWords(invoice.totalAmount, invLang)}
               </p>
@@ -653,17 +653,17 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
 
             {/* Notes */}
             {invoice.notes && (
-              <div style={{ marginBottom: "32px" }}>
+              <div style={{ marginBottom: "12px" }}>
                 <p
                   style={{
-                    fontSize: "11px",
+                    fontSize: "9px",
                     color: "#9CA3AF",
-                    marginBottom: "4px",
+                    marginBottom: "2px",
                   }}
                 >
                   Notes
                 </p>
-                <p style={{ fontSize: "13px", color: "#555" }}>
+                <p style={{ fontSize: "10px", color: "#555" }}>
                   {invoice.notes}
                 </p>
               </div>
@@ -674,21 +674,21 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: "48px",
-                marginTop: "48px",
+                gap: "24px",
+                marginTop: "16px",
               }}
             >
               <div>
                 <div
                   style={{
                     borderBottom: "1px dashed #D4AF37",
-                    height: "48px",
-                    marginBottom: "8px",
+                    height: "28px",
+                    marginBottom: "6px",
                   }}
                 />
                 <p
                   style={{
-                    fontSize: "12px",
+                    fontSize: "9px",
                     color: "#9CA3AF",
                     textAlign: "center",
                   }}
@@ -697,7 +697,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 </p>
                 <p
                   style={{
-                    fontSize: "12px",
+                    fontSize: "9px",
                     fontWeight: 600,
                     color: "#555",
                     textAlign: "center",
@@ -710,13 +710,13 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 <div
                   style={{
                     borderBottom: "1px dashed #D4AF37",
-                    height: "48px",
-                    marginBottom: "8px",
+                    height: "28px",
+                    marginBottom: "6px",
                   }}
                 />
                 <p
                   style={{
-                    fontSize: "12px",
+                    fontSize: "9px",
                     color: "#9CA3AF",
                     textAlign: "center",
                   }}
@@ -725,7 +725,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                 </p>
                 <p
                   style={{
-                    fontSize: "12px",
+                    fontSize: "9px",
                     fontWeight: 600,
                     color: "#555",
                     textAlign: "center",
@@ -739,13 +739,13 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
             {/* Footer */}
             <div
               style={{
-                marginTop: "32px",
-                paddingTop: "16px",
+                marginTop: "10px",
+                paddingTop: "8px",
                 borderTop: "1px solid #E5E7EB",
                 textAlign: "center",
               }}
             >
-              <p style={{ fontSize: "11px", color: "#9CA3AF" }}>
+              <p style={{ fontSize: "9px", color: "#9CA3AF" }}>
                 Thank you for your business! •{" "}
                 {settings?.shopName ?? "OMKAR JWELLERS"}
               </p>
