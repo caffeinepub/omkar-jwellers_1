@@ -418,6 +418,7 @@ export function useUpdateSettings() {
 
 export function useCreateUser() {
   const { actor } = useActor();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (user: UserDTO) => {
       if (!actor)
@@ -425,6 +426,7 @@ export function useCreateUser() {
       const creds = requireCreds();
       return actor.createUserWithCreds(creds.phone, creds.password, user);
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 }
 export function useUsers() {
