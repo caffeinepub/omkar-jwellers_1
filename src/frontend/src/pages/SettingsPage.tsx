@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
@@ -51,6 +52,7 @@ import {
   useUpdateUser,
   useUsers,
 } from "../hooks/useQueries";
+import { WA_NOTIFICATIONS_KEY } from "../lib/whatsapp";
 import { t } from "../translations";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -105,6 +107,11 @@ export default function SettingsPage() {
   // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UserDTO | null>(null);
+
+  // WhatsApp notifications toggle
+  const [waNotificationsEnabled, setWaNotificationsEnabled] = useState(
+    () => localStorage.getItem(WA_NOTIFICATIONS_KEY) !== "false",
+  );
 
   useEffect(() => {
     if (settings) {
@@ -211,29 +218,36 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="shop" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full bg-card border border-border">
+        <TabsList className="grid grid-cols-4 w-full bg-card border border-border">
           <TabsTrigger
             value="shop"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium text-xs md:text-sm"
           >
             {lang === "mr" ? "दुकान" : "Shop"}
           </TabsTrigger>
           <TabsTrigger
             value="adduser"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium text-xs md:text-sm"
           >
-            {lang === "mr" ? "वापरकर्ता जोडा" : "Add User"}
+            {lang === "mr" ? "जोडा" : "Add User"}
           </TabsTrigger>
           <TabsTrigger
             value="userlist"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium text-xs md:text-sm"
           >
-            {lang === "mr" ? "यादी" : "User List"}
+            {lang === "mr" ? "यादी" : "Users"}
             {users.length > 0 && (
-              <span className="ml-1.5 bg-primary/20 text-primary text-xs px-1.5 py-0.5 rounded-full font-bold">
+              <span className="ml-1 bg-primary/20 text-primary text-xs px-1 py-0.5 rounded-full font-bold">
                 {users.length}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger
+            value="notifications"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium text-xs md:text-sm"
+            data-ocid="settings.tab"
+          >
+            📲 {lang === "mr" ? "सूचना" : "Alerts"}
           </TabsTrigger>
         </TabsList>
 
@@ -504,6 +518,89 @@ export default function SettingsPage() {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* NOTIFICATIONS TAB */}
+        <TabsContent value="notifications" className="mt-4">
+          <Card className="gold-border bg-card">
+            <CardContent className="p-4 space-y-5">
+              <h3 className="font-semibold text-primary text-base flex items-center gap-2">
+                📲 {lang === "mr" ? "WhatsApp सूचना" : "WhatsApp Notifications"}
+              </h3>
+
+              {/* Toggle */}
+              <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-background/40 border border-border">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {lang === "mr"
+                      ? "ऑर्डर तयार झाल्यावर सूचना पाठवा"
+                      : "Notify when order is ready"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {lang === "mr"
+                      ? "स्थिती 'तयार' झाल्यावर WhatsApp उघडेल"
+                      : "Opens WhatsApp when status changes to Ready"}
+                  </p>
+                </div>
+                <Switch
+                  checked={waNotificationsEnabled}
+                  onCheckedChange={(checked) => {
+                    setWaNotificationsEnabled(checked);
+                    localStorage.setItem(WA_NOTIFICATIONS_KEY, String(checked));
+                    toast.success(
+                      checked
+                        ? lang === "mr"
+                          ? "WhatsApp सूचना चालू केली"
+                          : "WhatsApp notifications enabled"
+                        : lang === "mr"
+                          ? "WhatsApp सूचना बंद केली"
+                          : "WhatsApp notifications disabled",
+                    );
+                  }}
+                  data-ocid="settings.switch"
+                />
+              </div>
+
+              {/* Info box */}
+              {!waNotificationsEnabled && (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-400">
+                  <p className="font-medium">
+                    {lang === "mr"
+                      ? "⚠️ सूचना बंद आहे"
+                      : "⚠️ Notifications disabled"}
+                  </p>
+                  <p className="mt-0.5 text-yellow-400/80">
+                    {lang === "mr"
+                      ? "आपोआप संदेश पाठवला जाणार नाही। 'पुन्हा पाठवा' बटण अजून दिसेल."
+                      : "Auto-trigger is stopped. The 'Send Again' button is still visible on orders."}
+                  </p>
+                </div>
+              )}
+
+              {/* Message preview */}
+              <div className="bg-muted/30 rounded-lg p-3 space-y-1 border border-border/50">
+                <p className="text-xs font-semibold text-foreground mb-2">
+                  {lang === "mr" ? "संदेश नमुना:" : "Message Preview:"}
+                </p>
+                <p className="text-xs text-foreground">
+                  नमस्कार [Customer Name],
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  आपली ऑर्डर तयार आहे. कृपया दुकानात येऊन घेऊन जा.
+                </p>
+                <p className="text-xs text-muted-foreground">– ॐकार ज्वेलर्स</p>
+                <p className="text-xs text-foreground mt-2">
+                  Hello [Customer Name],
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your order is ready. Please visit the shop to collect it.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  – Omkar Jewellers
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

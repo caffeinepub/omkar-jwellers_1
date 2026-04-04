@@ -1,31 +1,36 @@
-# OMKAR JWELLERS
+# OMKAR JWELLERS — WhatsApp Order Ready Notification
 
 ## Current State
-Settings page has two sections: Shop Information form and Create User form. There is no way to view existing users, edit their info, or delete them. The backend has `createUserWithCreds` but no functions to list, update, or delete users.
+- RepairPage and CustomOrdersPage have status update dialogs (Pending → In Progress → Ready → Delivered)
+- `handleUpdate()` calls `updateOrder.mutateAsync()` and shows a success toast
+- Orders display customer phone number as plain text
+- SettingsPage has 3 tabs: Shop, Add User, User List — no notification settings
+- No WhatsApp integration exists anywhere in the app
 
 ## Requested Changes (Diff)
 
 ### Add
-- Backend: `getUsersWithCreds(phone, password)` - returns all users (passwords hidden)
-- Backend: `updateUserWithCreds(callerPhone, callerPassword, userDTO)` - owner updates any user's name/phone/password/role
-- Backend: `deleteUserWithCreds(callerPhone, callerPassword, targetPhone)` - owner deletes a user (cannot delete owner)
-- Frontend: Settings page tabs: "दुकानाची माहिती" (Shop Info), "नवीन वापरकर्ता" (Create User), "वापरकर्ता यादी" (User List)
-- Frontend: User List tab showing count, table with Name / Phone (ID) / Role columns, Edit and Delete buttons per row
-- Frontend: Edit User dialog (modal) with fields for Name, Phone, Password, Role - pre-filled with current values
-- Frontend: Delete confirmation dialog before deleting a user
-- Hooks: `useUsers`, `useUpdateUser`, `useDeleteUser` in useQueries.ts
+- WhatsApp deep link trigger in `handleUpdate()` in both RepairPage and CustomOrdersPage: when new status = "ready" AND previous status != "ready" (no duplicate), open `https://wa.me/91{phone}?text={encodedMessage}` in a new tab
+- Bilingual message format: Marathi block first, English block below, with customer name interpolated
+- Warning toast if phone number is missing when status changes to "ready"
+- "Send Again" WhatsApp button on every order card when order status is already "ready" — visible to all users regardless of notification toggle
+- Notification status indicator on order card ("WhatsApp Sent" green badge) stored in localStorage keyed by order ID, set when WhatsApp link is triggered
+- WhatsApp Notifications toggle in Settings (4th tab "Notifications") stored in localStorage key `omkar_whatsapp_notifications` (default: true)
+- When toggle is disabled, auto-trigger on status change is suppressed; "Send Again" button remains visible
+- WhatsApp icon (green) next to phone number on order cards
 
 ### Modify
-- SettingsPage.tsx: Convert flat page into tabbed layout (3 tabs)
-- translations.ts: Add keys for user list, edit user, delete user, confirmations
-- backend.d.ts: Add new function signatures
+- RepairPage: `handleUpdate()` — add WhatsApp trigger logic after successful update
+- RepairPage: order card — add WhatsApp icon next to phone, "Send Again" button when status=ready, notification badge
+- CustomOrdersPage: same changes as RepairPage
+- SettingsPage: add 4th "Notifications" tab with WhatsApp toggle switch
+- SettingsPage: change `grid-cols-3` to `grid-cols-4` on TabsList
 
 ### Remove
-- Nothing
+- Nothing removed
 
 ## Implementation Plan
-1. Add `getUsersWithCreds`, `updateUserWithCreds`, `deleteUserWithCreds` to main.mo
-2. Add those function signatures to backend.d.ts
-3. Add `useUsers`, `useUpdateUser`, `useDeleteUser` hooks to useQueries.ts
-4. Add translation keys (mr + en) for user list UI strings
-5. Rebuild SettingsPage.tsx with 3-tab layout, user list table, edit modal, delete confirm dialog
+1. Create `src/frontend/src/lib/whatsapp.ts` — helper: `buildWhatsAppUrl(phone, customerName)` and `triggerWhatsApp(phone, customerName, notificationsEnabled)` returning boolean (triggered or not)
+2. Modify `RepairPage.tsx` — handleUpdate triggers WhatsApp when status flips to ready; order card shows WA icon, Send Again button, sent badge
+3. Modify `CustomOrdersPage.tsx` — same changes
+4. Modify `SettingsPage.tsx` — add Notifications tab (4th) with toggle, grid-cols-4

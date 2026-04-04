@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ImageIcon,
   Loader2,
+  MessageCircle,
   PlusCircle,
   Upload,
   Wrench,
@@ -38,6 +39,12 @@ import {
   useRepairOrders,
   useUpdateRepairOrder,
 } from "../hooks/useQueries";
+import {
+  WA_NOTIFICATIONS_KEY,
+  WA_SENT_PREFIX,
+  buildWhatsAppUrl,
+  triggerWhatsApp,
+} from "../lib/whatsapp";
 import { t } from "../translations";
 
 const STATUS_LABELS: Record<string, { en: string; mr: string; color: string }> =
@@ -67,7 +74,6 @@ const STATUS_LABELS: Record<string, { en: string; mr: string; color: string }> =
 function getStatusKey(
   status: Variant_delivered_inProgress_received_ready,
 ): string {
-  // status is already a string enum value after Candid conversion
   if (typeof status === "string") return status;
   return Object.keys(status as object)[0] ?? "received";
 }
@@ -129,6 +135,21 @@ export default function RepairPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageHash, setImageHash] = useState<string | undefined>(undefined);
+
+  // WhatsApp sent tracking
+  const [waSentIds, setWaSentIds] = useState<Set<string>>(() => {
+    const s = new Set<string>();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(WA_SENT_PREFIX)) {
+        s.add(key.slice(WA_SENT_PREFIX.length));
+      }
+    }
+    return s;
+  });
+
+  const notificationsEnabled =
+    localStorage.getItem(WA_NOTIFICATIONS_KEY) !== "false";
 
   const [form, setForm] = useState({
     customerName: "",
@@ -203,6 +224,10 @@ export default function RepairPage() {
 
   async function handleUpdate() {
     if (!selectedId) return;
+    // Capture previous status before update
+    const prevOrder = orders.find((o) => o.id === selectedId);
+    const prevStatus = prevOrder ? getStatusKey(prevOrder.status) : "";
+
     try {
       await updateOrder.mutateAsync({
         id: selectedId,
@@ -212,6 +237,27 @@ export default function RepairPage() {
       });
       toast.success(lang === "mr" ? "अपडेट झाले" : "Updated successfully");
       setUpdateOpen(false);
+
+      // Trigger WhatsApp only when transitioning TO "ready" for the first time
+      if (updateState.status === "ready" && prevStatus !== "ready") {
+        if (!prevOrder?.phone) {
+          toast.warning(
+            lang === "mr"
+              ? "ग्राहकाचा फोन नंबर उपलब्ध नाही"
+              : "Customer phone number not available",
+          );
+        } else if (notificationsEnabled) {
+          const opened = triggerWhatsApp(
+            prevOrder.phone,
+            prevOrder.customerName,
+            notificationsEnabled,
+          );
+          if (opened) {
+            localStorage.setItem(WA_SENT_PREFIX + selectedId, "true");
+            setWaSentIds((prev) => new Set([...prev, selectedId]));
+          }
+        }
+      }
     } catch (e) {
       toast.error(extractErrorMessage(e));
     }
@@ -284,8 +330,14 @@ export default function RepairPage() {
                         </Badge>
                       </div>
                       {order.phone && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                           {order.phone}
+                          {sk === "ready" && (
+                            <MessageCircle
+                              size={13}
+                              className="text-green-400 shrink-0"
+                            />
+                          )}
                         </p>
                       )}
                       <p className="text-sm text-foreground mt-1">
@@ -329,6 +381,48 @@ export default function RepairPage() {
                       >
                         {lang === "mr" ? "अपडेट" : "Update"}
                       </Button>
+
+                      {/* Send Again button — always visible when status is ready */}
+                      {sk === "ready" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-500/40 text-green-400 hover:bg-green-500/10 text-xs gap-1"
+                          onClick={() => {
+                            if (!order.phone) {
+                              toast.warning(
+                                lang === "mr"
+                                  ? "ग्राहकाचा फोन नंबर उपलब्ध नाही"
+                                  : "Customer phone number not available",
+                              );
+                              return;
+                            }
+                            window.open(
+                              buildWhatsAppUrl(order.phone, order.customerName),
+                              "_blank",
+                            );
+                            localStorage.setItem(
+                              WA_SENT_PREFIX + order.id,
+                              "true",
+                            );
+                            setWaSentIds(
+                              (prev) => new Set([...prev, order.id]),
+                            );
+                          }}
+                          data-ocid={`repair.secondary_button.${idx + 1}`}
+                        >
+                          <MessageCircle size={12} />
+                          {lang === "mr" ? "पुन्हा पाठवा" : "Send Again"}
+                        </Button>
+                      )}
+
+                      {/* Sent badge */}
+                      {sk === "ready" && waSentIds.has(order.id) && (
+                        <span className="text-xs text-green-400 flex items-center gap-1 font-medium">
+                          <MessageCircle size={11} />
+                          WhatsApp Sent ✓
+                        </span>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -393,9 +487,7 @@ export default function RepairPage() {
               />
             </div>
             <div>
-              <Label>
-                {lang === "mr" ? "अंदाजित खर्च (₹)" : "Estimated Cost (₹)"}
-              </Label>
+              <Label>{lang === "mr" ? "अंदाजित किंमत" : "Estimated Cost"}</Label>
               <Input
                 className="mt-1"
                 type="number"
@@ -416,7 +508,7 @@ export default function RepairPage() {
                 }
               />
             </div>
-            {/* Image Upload */}
+            {/* Image upload */}
             <div>
               <Label>{lang === "mr" ? "संदर्भ फोटो" : "Reference Photo"}</Label>
               <div className="mt-1">
@@ -425,12 +517,12 @@ export default function RepairPage() {
                     <img
                       src={imagePreview}
                       alt="Preview"
-                      className="w-24 h-24 object-cover rounded-lg border border-border"
+                      className="w-32 h-32 object-cover rounded-lg border border-border"
                     />
                     <button
                       type="button"
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-destructive rounded-full flex items-center justify-center"
                       onClick={clearImage}
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center"
                     >
                       <X size={12} className="text-white" />
                     </button>
@@ -438,14 +530,14 @@ export default function RepairPage() {
                 ) : (
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors"
                     data-ocid="repair.upload_button"
                   >
-                    <Upload size={16} />
-                    {lang === "mr"
-                      ? "दुरुस्तीच्या वस्तूचा फोटो अपलोड करा"
-                      : "Upload photo of item to repair"}
+                    <Upload size={20} className="text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {lang === "mr" ? "फोटो अपलोड करा" : "Upload photo"}
+                    </span>
                   </button>
                 )}
                 <input
@@ -458,13 +550,10 @@ export default function RepairPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="mt-4">
             <Button
               variant="outline"
-              onClick={() => {
-                setCreateOpen(false);
-                clearImage();
-              }}
+              onClick={() => setCreateOpen(false)}
               data-ocid="repair.cancel_button"
             >
               {t(lang, "cancel")}
@@ -475,10 +564,10 @@ export default function RepairPage() {
               disabled={createOrder.isPending || uploading}
               data-ocid="repair.submit_button"
             >
-              {(createOrder.isPending || uploading) && (
-                <Loader2 size={14} className="mr-2 animate-spin" />
-              )}
-              {lang === "mr" ? "जतन करा" : "Save"}
+              {createOrder.isPending || uploading ? (
+                <Loader2 size={16} className="animate-spin mr-2" />
+              ) : null}
+              {lang === "mr" ? "तयार करा" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -495,7 +584,7 @@ export default function RepairPage() {
               {lang === "mr" ? "स्थिती अपडेट करा" : "Update Status"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 mt-2">
             <div>
               <Label>{lang === "mr" ? "स्थिती" : "Status"}</Label>
               <Select
@@ -525,14 +614,15 @@ export default function RepairPage() {
                 onChange={(e) =>
                   setUpdateState((p) => ({ ...p, notes: e.target.value }))
                 }
+                data-ocid="repair.textarea"
               />
             </div>
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="mt-4">
             <Button
               variant="outline"
               onClick={() => setUpdateOpen(false)}
-              data-ocid="repair.close_button"
+              data-ocid="repair.cancel_button"
             >
               {t(lang, "cancel")}
             </Button>
@@ -540,12 +630,12 @@ export default function RepairPage() {
               className="gold-gradient text-primary-foreground"
               onClick={handleUpdate}
               disabled={updateOrder.isPending}
-              data-ocid="repair.confirm_button"
+              data-ocid="repair.save_button"
             >
-              {updateOrder.isPending && (
-                <Loader2 size={14} className="mr-2 animate-spin" />
-              )}
-              {t(lang, "save") || (lang === "mr" ? "जतन" : "Save")}
+              {updateOrder.isPending ? (
+                <Loader2 size={16} className="animate-spin mr-2" />
+              ) : null}
+              {lang === "mr" ? "जतन करा" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
