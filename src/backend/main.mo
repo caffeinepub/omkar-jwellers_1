@@ -261,11 +261,25 @@ actor {
   };
   restoreState();
 
-  // Always force-write the owner account to guarantee login always works.
+  // Helper: check if a password value is already a SHA-256 hex hash (64 lowercase hex chars).
+  // Used to detect un-migrated plain-text passwords.
+  func isPasswordHashed(pwd : Text) : Bool {
+    if (pwd.size() != 64) { return false };
+    for (c in pwd.chars()) {
+      if (not (c >= '0' and c <= '9') and not (c >= 'a' and c <= 'f')) {
+        return false;
+      };
+    };
+    true;
+  };
+
+  // Always force-write the owner account with the SHA-256 hashed password.
+  // Hash is SHA-256("OMKAR_JWELLERS_SALT_2024" + "Prasad@6aug") computed at build time.
+  // Plain-text password is NEVER stored in the backend.
   func initOwnerAccount() {
     let owner : User = {
       phone = "8263062604";
-      password = "Prasad@6aug";
+      password = "8cd7bd54389b686a963c5b1bb19dd78dee9ae61e92fd7c58dd6a00bdddff4d07";  // SHA-256 hash of OMKAR_JWELLERS_SALT_2024 + Prasad@6aug
       role = #owner;
       name = "Prasad";
     };
@@ -371,11 +385,18 @@ actor {
 
   // --- CREDENTIAL VALIDATION HELPER ---
   // Used by all *WithCreds functions. Validates phone+password and returns the User.
+  // Expects the incoming password to be a SHA-256 hex hash (64 chars).
+  // If stored password is plain text (un-migrated), rejects with a clear error.
   func validateCreds(phone : Text, password : Text) : User {
     if (phone == "" or password == "") { Runtime.trap("Invalid credentials") };
     switch (usersMap.get(phone)) {
       case (null) { Runtime.trap("Unauthorized: User not found") };
       case (?user) {
+        // If stored password is plain text, it must be migrated.
+        // The owner is always migrated via initOwnerAccount. Other users must be re-created.
+        if (not isPasswordHashed(user.password)) {
+          Runtime.trap("Unauthorized: Password must be reset. Please contact the owner to re-create your account.");
+        };
         if (user.password != password) { Runtime.trap("Unauthorized: Invalid password") };
         user;
       };
@@ -403,11 +424,15 @@ actor {
 
   // AUTH
 
+  // Legacy session-based login. Uses same hashed password validation as validateCreds.
   public shared ({ caller }) func login(phone : Text, password : Text) : async UserDTO {
     if (phone == "" or password == "") { Runtime.trap("Invalid credentials") };
     switch (usersMap.get(phone)) {
       case (null) { Runtime.trap("User not found") };
       case (?user) {
+        if (not isPasswordHashed(user.password)) {
+          Runtime.trap("Unauthorized: Password must be reset. Please contact the owner.");
+        };
         if (user.password != password) { Runtime.trap("Invalid credentials") };
         principalToPhoneMap.remove(caller);
         principalToPhoneMap.add(caller, phone);
@@ -425,6 +450,7 @@ actor {
   public shared ({ caller }) func createUser(userDTO : UserDTO) : async () {
     requireOwner(caller);
     if (userDTO.phone == "" or userDTO.password == "" or userDTO.name == "") { Runtime.trap("Invalid user data") };
+    if (not isPasswordHashed(userDTO.password)) { Runtime.trap("Password must be hashed before storage") };
     if (usersMap.get(userDTO.phone) != null) { Runtime.trap("User already exists") };
     usersMap.add(userDTO.phone, { phone = userDTO.phone; password = userDTO.password; role = userDTO.role; name = userDTO.name });
   };
@@ -432,6 +458,7 @@ actor {
   public shared func createUserWithCreds(callerPhone : Text, callerPassword : Text, userDTO : UserDTO) : async () {
     ignore validateCredsOwner(callerPhone, callerPassword);
     if (userDTO.phone == "" or userDTO.password == "" or userDTO.name == "") { Runtime.trap("Invalid user data") };
+    if (not isPasswordHashed(userDTO.password)) { Runtime.trap("Password must be hashed before storage") };
     if (usersMap.get(userDTO.phone) != null) { Runtime.trap("User already exists") };
     usersMap.add(userDTO.phone, { phone = userDTO.phone; password = userDTO.password; role = userDTO.role; name = userDTO.name });
   };
@@ -871,7 +898,13 @@ actor {
     switch (usersMap.get(userDTO.phone)) {
       case (null) { Runtime.trap("User not found") };
       case (?existingUser) {
-        let newPassword = if (userDTO.password == "") { existingUser.password } else { userDTO.password };
+        // Empty password means "keep existing". Non-empty password must be hashed.
+        let newPassword = if (userDTO.password == "") {
+          existingUser.password;
+        } else {
+          if (not isPasswordHashed(userDTO.password)) { Runtime.trap("Password must be hashed before storage") };
+          userDTO.password;
+        };
         usersMap.remove(userDTO.phone);
         usersMap.add(userDTO.phone, { existingUser with name = userDTO.name; password = newPassword; role = userDTO.role });
       };

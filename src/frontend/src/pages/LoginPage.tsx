@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAuth, useLang } from "../App";
 import type { Role } from "../backend";
 import { useActor } from "../hooks/useActor";
+import { hashPassword } from "../lib/passwordHash";
 import { t } from "../translations";
 
 export default function LoginPage() {
@@ -36,10 +37,13 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const result = await actor.login(phone.trim(), password);
+      // Hash the password before sending to backend - never transmit plain text
+      const hashedPwd = await hashPassword(password);
+      const result = await actor.loginWithCreds(phone.trim(), hashedPwd);
+      // Store hashed password in localStorage - never store plain text
       localStorage.setItem(
         "omkar_creds",
-        JSON.stringify({ phone: phone.trim(), password }),
+        JSON.stringify({ phone: phone.trim(), password: hashedPwd }),
       );
       setUser({
         name: result.name,

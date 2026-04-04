@@ -76,6 +76,7 @@ import {
   storeBackupData,
   validateBackupBlob,
 } from "../lib/backup";
+import { hashPassword } from "../lib/passwordHash";
 import { WA_NOTIFICATIONS_KEY } from "../lib/whatsapp";
 import { t } from "../translations";
 
@@ -172,7 +173,6 @@ export default function SettingsPage() {
     if (user?.role === "owner" && shouldAutoBackup() && customers.length > 0) {
       performBackup("auto", false);
     }
-    // biome-ignore lint/correctness/useExhaustiveDependencies: performBackup is stable
   }, [customers.length, user?.role]);
 
   async function handleSaveSettings(e: React.FormEvent) {
@@ -192,7 +192,9 @@ export default function SettingsPage() {
       return;
     }
     try {
-      await createUser.mutateAsync(newUser);
+      // Hash password before sending to backend - never store plain text
+      const hashedPwd = await hashPassword(newUser.password);
+      await createUser.mutateAsync({ ...newUser, password: hashedPwd });
       toast.success(t(lang, "userCreated"));
       setNewUser({ name: "", phone: "", password: "", role: Role.staff });
     } catch (e) {
@@ -218,10 +220,14 @@ export default function SettingsPage() {
       return;
     }
     try {
+      // Hash password if a new one was entered; empty string means "keep existing" (backend handles this)
+      const hashedPwd = editForm.password
+        ? await hashPassword(editForm.password)
+        : "";
       await updateUser.mutateAsync({
         name: editForm.name,
         phone: editForm.phone,
-        password: editForm.password,
+        password: hashedPwd,
         role: editForm.role,
       });
       toast.success(t(lang, "userUpdated"));
