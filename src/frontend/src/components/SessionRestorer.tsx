@@ -5,6 +5,7 @@ import { useActor } from "../hooks/useActor";
  * Re-establishes the backend session every time the actor becomes ready.
  * Each new deployment clears the backend's session map, so we must
  * call actor.login() on every page load to re-map our Principal -> phone.
+ * NOTE: Stored credentials are already hashed (stored by LoginPage after hashing).
  */
 export default function SessionRestorer() {
   const { actor, isFetching } = useActor();
@@ -24,8 +25,8 @@ export default function SessionRestorer() {
 
     if (!creds.phone || !creds.password) return;
 
-    // Re-establish session - runs every time actor is ready (i.e. on every page load).
-    // This ensures the Principal->phone mapping exists in the backend.
+    // Re-establish session. The stored password is already the SHA-256 hash
+    // (LoginPage stores the hash, not the plain text). So we pass it directly.
     actor.login(creds.phone, creds.password).catch((err) => {
       console.warn("SessionRestorer: failed to re-establish session", err);
     });

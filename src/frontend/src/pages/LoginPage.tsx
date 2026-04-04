@@ -21,7 +21,7 @@ import { t } from "../translations";
 export default function LoginPage() {
   const { lang } = useLang();
   const { setUser } = useAuth();
-  const { actor } = useActor();
+  const { actor, isFetching } = useActor();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -30,29 +30,112 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!actor) {
-      toast.error("Connecting to backend...");
+    setError("");
+
+    // Actor still loading — show a clear message and stop
+    if (isFetching) {
+      setError(
+        lang === "mr"
+          ? "बॅकएंड लोड होत आहे, कृपया थांबा..."
+          : "Backend is loading, please wait...",
+      );
       return;
     }
+
+    if (!actor) {
+      setError(
+        lang === "mr"
+          ? "सर्व्हरशी संपर्क होत नाही. कृपया पृष्ठ रिफ्रेश करा."
+          : "Cannot connect to server. Please refresh the page.",
+      );
+      return;
+    }
+
     setLoading(true);
-    setError("");
     try {
-      // Hash the password before sending to backend - never transmit plain text
-      const hashedPwd = await hashPassword(password);
+      // Hash the password before sending — never transmit plain text
+      let hashedPwd: string;
+      try {
+        hashedPwd = await hashPassword(password);
+      } catch {
+        // Web Crypto API failure (very rare)
+        setError(
+          lang === "mr"
+            ? "पासवर्ड प्रक्रिया करताना त्रुटी. कृपया पुन्हा प्रयत्न करा."
+            : "Password processing failed. Please try again.",
+        );
+        return;
+      }
+
       const result = await actor.loginWithCreds(phone.trim(), hashedPwd);
-      // Store hashed password in localStorage - never store plain text
+
+      // Store hashed credentials — never store plain text
       localStorage.setItem(
         "omkar_creds",
         JSON.stringify({ phone: phone.trim(), password: hashedPwd }),
       );
+
       setUser({
         name: result.name,
         phone: result.phone,
         role: result.role as Role,
       });
       window.location.hash = "/dashboard";
-    } catch {
-      setError(t(lang, "loginError"));
+    } catch (e: unknown) {
+      let msg =
+        lang === "mr"
+          ? "काहीतरी चूक झाली. पुन्हा प्रयत्न करा."
+          : "Something went wrong. Please try again.";
+
+      if (e instanceof Error) {
+        const raw = e.message;
+        // Motoko trap
+        const trapMatch = raw.match(/trapped with message:\s*(.+)/s);
+        if (trapMatch) {
+          msg = trapMatch[1].split("\n")[0].trim();
+        } else if (raw.length < 300) {
+          msg = raw;
+        }
+
+        // Map known errors to friendly messages
+        if (
+          msg.toLowerCase().includes("invalid password") ||
+          msg.toLowerCase().includes("invalid credentials")
+        ) {
+          msg =
+            lang === "mr"
+              ? "चुकीचा फोन नंबर किंवा पासवर्ड"
+              : "Invalid phone number or password";
+        } else if (msg.toLowerCase().includes("user not found")) {
+          msg =
+            lang === "mr"
+              ? "हा फोन नंबर नोंदणीकृत नाही"
+              : "This phone number is not registered";
+        } else if (msg.toLowerCase().includes("password must be reset")) {
+          msg =
+            lang === "mr"
+              ? "पासवर्ड रीसेट आवश्यक आहे."
+              : "Password reset required. Please contact the owner.";
+        } else if (
+          msg.toLowerCase().includes("is stopped") ||
+          msg.toLowerCase().includes("canister stopped")
+        ) {
+          msg =
+            lang === "mr"
+              ? "सर्व्हर तात्पुरता बंद आहे. 30 सेकंद थांबून पुन्हा प्रयत्न करा."
+              : "Server is temporarily stopped. Please wait 30 seconds and try again.";
+        } else if (
+          msg.toLowerCase().includes("canister") &&
+          msg.toLowerCase().includes("rejected")
+        ) {
+          msg =
+            lang === "mr"
+              ? "सर्व्हरशी संपर्क करता आला नाही. पृष्ठ रिफ्रेश करा."
+              : "Could not reach server. Please refresh the page.";
+        }
+      }
+
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -138,11 +221,23 @@ export default function LoginPage() {
                 </div>
               )}
 
+              {/* Show loading indicator while actor initializes */}
+              {isFetching && !loading && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 size={12} className="animate-spin" />
+                  <span>
+                    {lang === "mr"
+                      ? "सर्व्हरशी संपर्क करत आहे..."
+                      : "Connecting to server..."}
+                  </span>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 data-ocid="login.submit_button"
                 className="w-full gold-gradient text-primary-foreground font-semibold h-11"
-                disabled={loading}
+                disabled={loading || isFetching}
               >
                 {loading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
