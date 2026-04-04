@@ -267,12 +267,26 @@ actor {
       phone = "8263062604";
       password = "Prasad@6aug";
       role = #owner;
-      name = "Prasad";
+      name = "Prasad Kapile";
     };
     usersMap.remove(owner.phone);
     usersMap.add(owner.phone, owner);
   };
   initOwnerAccount();
+
+  // Seed default users on first deploy (only if not already present)
+  func initDefaultUsers() {
+    let defaults : [User] = [
+      { phone = "9881240834"; password = "1183"; role = #owner; name = "Bhausaheb Kapile" },
+      { phone = "7350174072"; password = "7350"; role = #owner; name = "Omkar Kapile" },
+    ];
+    for (u in defaults.vals()) {
+      if (usersMap.get(u.phone) == null) {
+        usersMap.add(u.phone, u);
+      };
+    };
+  };
+  initDefaultUsers();
 
   // --- Preupgrade: serialize Maps to stable arrays ---
   system func preupgrade() {
@@ -298,6 +312,7 @@ actor {
     settings := stableSettings;
     invoiceCounter := stableInvoiceCounter;
     initOwnerAccount();
+    initDefaultUsers();
   };
 
   func toUserDTO(user : User) : UserDTO {
