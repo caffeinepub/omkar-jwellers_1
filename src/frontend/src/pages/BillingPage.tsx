@@ -60,7 +60,21 @@ const PURITY_OPTIONS = [
   { label: "22K", key: "gold22k" },
   { label: "18K", key: "gold18k" },
   { label: "Silver", key: "silver" },
+  { label: "Silver 999", key: "silver" },
+  { label: "Silver 995", key: "silver" },
 ];
+
+// Convert purity label string to numeric value for backend storage
+function purityLabelToNumber(label: string): number {
+  if (label === "24K") return 24;
+  if (label === "22K") return 22;
+  if (label === "18K") return 18;
+  if (label === "Silver 999") return 999;
+  if (label === "Silver 995") return 995;
+  if (label === "Silver") return 0;
+  // fallback: try to parse, default 22
+  return Number.parseFloat(label) || 22;
+}
 
 export default function BillingPage() {
   const { lang } = useLang();
@@ -134,7 +148,12 @@ export default function BillingPage() {
     if (purity === "24K") return goldRates.gold24k || 0;
     if (purity === "22K") return goldRates.gold22k || 0;
     if (purity === "18K") return goldRates.gold18k || 0;
-    if (purity === "Silver") return goldRates.silver || 0;
+    if (
+      purity === "Silver" ||
+      purity === "Silver 999" ||
+      purity === "Silver 995"
+    )
+      return goldRates.silver || 0;
     return 0;
   }
 
@@ -169,7 +188,7 @@ export default function BillingPage() {
     const item: BillingItem = {
       tempId: generateTempId(),
       description: newItem.description,
-      purity: Number.parseFloat(newItem.purity) || 22,
+      purity: purityLabelToNumber(newItem.purity),
       weight,
       rate,
       makingCharges: makingChargesAmount,
@@ -220,7 +239,7 @@ export default function BillingPage() {
           ? {
               ...it,
               description: editState.description,
-              purity: Number.parseFloat(editState.purity) || 22,
+              purity: purityLabelToNumber(editState.purity),
               weight,
               rate,
               total: weight * rate,
@@ -273,10 +292,14 @@ export default function BillingPage() {
             (Number.parseFloat(sgstPct) || 0)
           : 0,
         language: invoiceLang,
-        notes:
-          oldGoldAmt > 0 || discountAmt > 0
-            ? `${notes}${oldGoldAmt > 0 ? `||oldGold:${oldGoldAmt}||` : ""}${discountAmt > 0 ? `||shopDiscount:${discountAmt}||` : ""}`
-            : notes,
+        notes: [
+          notes,
+          oldGoldAmt > 0 ? `||oldGold:${oldGoldAmt}||` : "",
+          discountAmt > 0 ? `||shopDiscount:${discountAmt}||` : "",
+          paidAmt > 0 ? `||cashPaid:${paidAmt}||` : "",
+        ]
+          .filter(Boolean)
+          .join(""),
         // Include oldGold + discount so backend calculates udhar correctly:
         // udhar = totalAmount - partialPayment = (subtotal+gst) - (paid+oldGold+discount) = grandTotal - paid
         partialPayment: paidAmt + oldGoldAmt + discountAmt,
@@ -312,10 +335,14 @@ export default function BillingPage() {
             (Number.parseFloat(sgstPct) || 0)
           : 0,
         language: invoiceLang,
-        notes:
-          oldGoldAmt > 0 || discountAmt > 0
-            ? `${notes}${oldGoldAmt > 0 ? `||oldGold:${oldGoldAmt}||` : ""}${discountAmt > 0 ? `||shopDiscount:${discountAmt}||` : ""}`
-            : notes,
+        notes: [
+          notes,
+          oldGoldAmt > 0 ? `||oldGold:${oldGoldAmt}||` : "",
+          discountAmt > 0 ? `||shopDiscount:${discountAmt}||` : "",
+          paidAmt > 0 ? `||cashPaid:${paidAmt}||` : "",
+        ]
+          .filter(Boolean)
+          .join(""),
         // Include oldGold + discount so backend calculates udhar correctly:
         // udhar = totalAmount - partialPayment = (subtotal+gst) - (paid+oldGold+discount) = grandTotal - paid
         partialPayment: paidAmt + oldGoldAmt + discountAmt,
@@ -569,7 +596,11 @@ export default function BillingPage() {
                             {item.description}
                           </td>
                           <td className="px-3 py-2.5 text-muted-foreground">
-                            {item.purity}K
+                            {item.purity === 0
+                              ? "Silver"
+                              : item.purity >= 900
+                                ? `Silver ${item.purity}`
+                                : `${item.purity}K`}
                           </td>
                           <td className="px-3 py-2.5 text-right">
                             {item.weight}g
@@ -847,7 +878,7 @@ export default function BillingPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {PURITY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.key} value={opt.label}>
+                      <SelectItem key={opt.label} value={opt.label}>
                         {opt.label}
                       </SelectItem>
                     ))}

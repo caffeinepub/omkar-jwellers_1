@@ -11,6 +11,7 @@ import {
 import { useRef } from "react";
 import { useLang } from "../App";
 import { Variant_paid_locked_draft_partial } from "../backend";
+import { useActor } from "../hooks/useActor";
 import { useCustomers, useInvoice, useSettings } from "../hooks/useQueries";
 import { t } from "../translations";
 import type { Lang } from "../translations";
@@ -24,6 +25,7 @@ interface InvoicePageProps {
 export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
   const { lang } = useLang();
   const printRef = useRef<HTMLDivElement>(null);
+  const { isFetching: actorFetching } = useActor();
 
   const { data: invoice, isLoading } = useInvoice(invoiceId);
   const { data: settings } = useSettings();
@@ -57,7 +59,8 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   }
 
-  if (isLoading) {
+  // Show loading skeleton while actor is initialising OR query is loading
+  if (isLoading || actorFetching) {
     return (
       <div className="p-6 space-y-4">
         <Skeleton className="h-8 w-64" />
@@ -103,16 +106,31 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
     : ((invoice as any).shopDiscount ?? 0);
   const oldGoldMatch = invoice.notes?.match(/\|\|oldGold:([\d.]+)\|\|/);
   const oldGoldAmt = oldGoldMatch ? Number(oldGoldMatch[1]) : 0;
+  // Parse cashPaid encoded in notes as ||cashPaid:XX||
+  const cashPaidMatch = invoice.notes?.match(/\|\|cashPaid:([\d.]+)\|\|/);
+  // For display: if cashPaid is stored in notes, use it.
+  // Otherwise fall back to: amountPaid - oldGoldAmt - shopDiscountAmt (for old invoices)
+  const displayAmountPaid = cashPaidMatch
+    ? Number(cashPaidMatch[1])
+    : Math.max(0, invoice.amountPaid - oldGoldAmt - shopDiscountAmt);
   const cleanNotes =
     invoice.notes
       ?.replace(/\|\|shopDiscount:[\d.]+\|\|/, "")
       .replace(/\|\|oldGold:[\d.]+\|\|/, "")
+      .replace(/\|\|cashPaid:[\d.]+\|\|/, "")
       .trim() ?? "";
   const isUdhar = invoice.udhar > 0;
   const isPaid = invoice.status === Variant_paid_locked_draft_partial.paid;
 
   // Shopname for invoice
   const shopName = settings?.shopName ?? "ॐकार ज्वेलर्स";
+
+  // Helper: display purity label from numeric value
+  function purityLabel(purity: number): string {
+    if (purity === 0) return "Silver";
+    if (purity >= 900) return `Silver ${purity}`;
+    return `${purity}K`;
+  }
 
   return (
     <div
@@ -460,7 +478,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     {
                       label: t(invLang, "purity"),
                       align: "center",
-                      width: "36px",
+                      width: "44px",
                     },
                     {
                       label: t(invLang, "weight"),
@@ -528,7 +546,7 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                         color: "#111",
                       }}
                     >
-                      {item.purity}K
+                      {purityLabel(item.purity)}
                     </td>
                     <td
                       style={{
@@ -806,17 +824,19 @@ export default function InvoicePage({ invoiceId, isPublic }: InvoicePageProps) {
                     ).toLocaleString("en-IN")}
                   </span>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    color: "#555",
-                    marginTop: "2px",
-                  }}
-                >
-                  <span>{t(invLang, "amountPaid")}</span>
-                  <span>₹{invoice.amountPaid.toLocaleString("en-IN")}</span>
-                </div>
+                {displayAmountPaid > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      color: "#555",
+                      marginTop: "2px",
+                    }}
+                  >
+                    <span>{t(invLang, "amountPaid")}</span>
+                    <span>₹{displayAmountPaid.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
                 {isUdhar && (
                   <div
                     style={{
